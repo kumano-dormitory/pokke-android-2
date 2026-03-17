@@ -27,6 +27,7 @@ data class ParcelDeliveryUiState(
     val parcelsForRyosei: List<ParcelEntity> = emptyList(),
     val selectedParcelIds: Set<String> = emptySet(),
     val showDeliveryDialog: Boolean = false,
+    val dutyPersonName: String = "",
     val isLoading: Boolean = false,
     val isDelivering: Boolean = false
 )
@@ -46,6 +47,17 @@ class ParcelDeliveryViewModel(
 
     init {
         loadData()
+        loadDutyPerson()
+    }
+
+    private fun loadDutyPerson() {
+        viewModelScope.launch {
+            dutyPersonRepository.getCurrentDutyPerson().collect { dutyPerson ->
+                _uiState.value = _uiState.value.copy(
+                    dutyPersonName = dutyPerson?.name ?: ""
+                )
+            }
+        }
     }
 
     private fun loadData() {

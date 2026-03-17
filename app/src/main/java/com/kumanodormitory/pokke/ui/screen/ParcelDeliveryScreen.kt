@@ -1,6 +1,7 @@
 package com.kumanodormitory.pokke.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,28 +13,43 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
+import com.kumanodormitory.pokke.ui.viewmodel.ParcelDeliveryUiState
 import com.kumanodormitory.pokke.ui.viewmodel.ParcelDeliveryViewModel
+
+// 旧POKKEの引渡テーマカラー
+private val ReleaseTheme = Color(0xFFDAA186)
+private val ReleaseHeaderFont = Color.White
+private val ListBorder = Color(0xFFD3D3D3)
 
 @Composable
 fun ParcelDeliveryScreen(
@@ -41,6 +57,7 @@ fun ParcelDeliveryScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
 
     if (uiState.isLoading) {
@@ -51,44 +68,62 @@ fun ParcelDeliveryScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = "荷物の引き渡し",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(16.dp)
+        // Header — 旧UIの include_header_release を再現
+        ReleaseHeader(
+            dutyPersonName = uiState.dutyPersonName,
+            onBack = onNavigateBack
         )
 
-        Row(modifier = Modifier.fillMaxSize().weight(1f)) {
-            // Column 1: Blocks
+        // Content — 3カラムレイアウト
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 110.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Column 1: Blocks (旧UI: 160dp幅)
             BlockColumn(
                 blocks = uiState.blocks,
                 selectedBlock = uiState.selectedBlock,
-                onSelectBlock = viewModel::selectBlock,
-                modifier = Modifier.weight(1f).fillMaxHeight()
+                onSelectBlock = { block ->
+                    viewModel.selectBlock(block)
+                    // SoundManager.play(context, R.raw.cursor)
+                },
+                modifier = Modifier.width(160.dp).fillMaxHeight()
             )
 
-            VerticalDivider()
+            Spacer(modifier = Modifier.width(100.dp))
 
-            // Column 2: Rooms
+            // Column 2: Rooms (旧UI: 160dp幅)
             RoomColumn(
                 rooms = uiState.rooms,
                 selectedRoom = uiState.selectedRoom,
-                onSelectRoom = viewModel::selectRoom,
-                modifier = Modifier.weight(1f).fillMaxHeight()
+                onSelectRoom = { room ->
+                    viewModel.selectRoom(room)
+                    // SoundManager.play(context, R.raw.cursor2)
+                },
+                modifier = Modifier.width(160.dp).fillMaxHeight()
             )
 
-            VerticalDivider()
+            Spacer(modifier = Modifier.width(100.dp))
 
-            // Column 3: Ryosei with parcels
-            RyoseiColumn(
+            // Column 3: Ryosei (旧UI: 540dp幅、検索付き)
+            RyoseiColumnWithSearch(
                 ryoseiList = uiState.ryoseiWithParcels,
-                selectedRyosei = uiState.selectedRyosei,
-                onSelectRyosei = viewModel::selectRyosei,
-                modifier = Modifier.weight(1.5f).fillMaxHeight()
+                onSelectRyosei = { ryosei ->
+                    viewModel.selectRyosei(ryosei)
+                    // SoundManager.play(context, R.raw.cursor2)
+                },
+                modifier = Modifier.width(540.dp).fillMaxHeight()
             )
         }
+
+        // Footer — 旧UIの include_footer_release を再現
+        ReleaseFooter()
     }
 
+    // 引渡ダイアログ
     if (uiState.showDeliveryDialog) {
         DeliveryDialog(
             ryosei = uiState.selectedRyosei,
@@ -96,11 +131,89 @@ fun ParcelDeliveryScreen(
             selectedIds = uiState.selectedParcelIds,
             isDelivering = uiState.isDelivering,
             onToggle = viewModel::toggleParcelSelection,
-            onConfirm = { viewModel.deliverSelected(onNavigateBack) },
+            onConfirm = {
+                viewModel.deliverSelected {
+                    // SoundManager.play(context, R.raw.done)
+                    onNavigateBack()
+                }
+            },
             onDismiss = viewModel::dismissDialog
         )
     }
 }
+
+// ─── Header ───────────────────────────────────────────────
+
+@Composable
+private fun ReleaseHeader(
+    dutyPersonName: String,
+    onBack: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .background(ReleaseTheme)
+            .padding(horizontal = 70.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "戻る",
+                tint = ReleaseHeaderFont,
+                modifier = Modifier.size(50.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Text(
+            text = "引き渡し",
+            color = ReleaseHeaderFont,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Text(
+            text = "現在の事務当：",
+            color = ReleaseHeaderFont,
+            fontSize = 20.sp
+        )
+
+        Text(
+            text = dutyPersonName.ifEmpty { "設定されていません" },
+            color = ReleaseHeaderFont,
+            fontSize = 20.sp,
+            modifier = Modifier.width(280.dp)
+        )
+    }
+}
+
+// ─── Footer ───────────────────────────────────────────────
+
+@Composable
+private fun ReleaseFooter() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(45.dp)
+            .background(ReleaseTheme)
+            .padding(horizontal = 50.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "© Kumano Dormitory",
+            color = ReleaseHeaderFont,
+            fontSize = 12.sp
+        )
+    }
+}
+
+// ─── Block Column ─────────────────────────────────────────
 
 @Composable
 private fun BlockColumn(
@@ -109,33 +222,34 @@ private fun BlockColumn(
     onSelectBlock: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Text(
-            text = "ブロック",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(12.dp)
-        )
-        HorizontalDivider()
-        LazyColumn {
-            items(blocks) { block ->
-                val isSelected = block == selectedBlock
+    LazyColumn(
+        modifier = modifier.border(1.dp, ListBorder)
+    ) {
+        items(blocks) { block ->
+            val isSelected = block == selectedBlock
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface
+                    )
+                    .clickable { onSelectBlock(block) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
                 Text(
                     text = block,
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectBlock(block) }
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        )
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurface
                 )
             }
+            HorizontalDivider()
         }
     }
 }
+
+// ─── Room Column ──────────────────────────────────────────
 
 @Composable
 private fun RoomColumn(
@@ -144,77 +258,80 @@ private fun RoomColumn(
     onSelectRoom: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Text(
-            text = "部屋",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(12.dp)
-        )
-        HorizontalDivider()
-        LazyColumn {
-            items(rooms) { room ->
-                val isSelected = room == selectedRoom
+    LazyColumn(
+        modifier = modifier.border(1.dp, ListBorder)
+    ) {
+        items(rooms) { room ->
+            val isSelected = room == selectedRoom
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+                        else MaterialTheme.colorScheme.surface
+                    )
+                    .clickable { onSelectRoom(room) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
                 Text(
                     text = room,
                     style = MaterialTheme.typography.bodyLarge,
+                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            HorizontalDivider()
+        }
+    }
+}
+
+// ─── Ryosei Column with Search ────────────────────────────
+
+@Composable
+private fun RyoseiColumnWithSearch(
+    ryoseiList: List<RyoseiEntity>,
+    onSelectRyosei: (RyoseiEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        // 検索バー（旧UI: 寮生名検索）
+        // 検索は ViewModel 側で実装予定。現段階ではプレースホルダー配置
+        // 旧UI: EditText 225dp + ImageButton 40dp
+
+        // 寮生リスト
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .border(1.dp, ListBorder)
+        ) {
+            items(ryoseiList) { ryosei ->
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectRoom(room) }
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        )
+                        .clickable { onSelectRyosei(ryosei) }
                         .padding(horizontal = 16.dp, vertical = 12.dp)
-                )
+                ) {
+                    // 旧UI: "部屋名 寮生名" + 荷物数を2行表示 (simple_list_item_2)
+                    Column {
+                        Text(
+                            text = "${ryosei.room}  ${ryosei.name}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+                HorizontalDivider()
             }
         }
     }
 }
 
-@Composable
-private fun RyoseiColumn(
-    ryoseiList: List<RyoseiEntity>,
-    selectedRyosei: RyoseiEntity?,
-    onSelectRyosei: (RyoseiEntity) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier) {
-        Text(
-            text = "寮生",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(12.dp)
-        )
-        HorizontalDivider()
-        LazyColumn {
-            items(ryoseiList) { ryosei ->
-                val isSelected = ryosei.id == selectedRyosei?.id
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSelectRyosei(ryosei) }
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface
-                        )
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    Text(
-                        text = ryosei.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = ryosei.room,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
+// ─── Delivery Dialog ──────────────────────────────────────
+// 旧UI: ReleaseDialog.java を再現
+// - タイトル: "部屋 名前 の荷物を引き渡します。"
+// - MultiChoiceItems（全選択デフォルト）
+// - 「引き渡し」「キャンセル」ボタン
 
 @Composable
 private fun DeliveryDialog(
@@ -229,59 +346,71 @@ private fun DeliveryDialog(
     AlertDialog(
         onDismissRequest = { if (!isDelivering) onDismiss() },
         title = {
-            Text("${ryosei?.name ?: ""} さんの荷物")
+            Text(
+                text = "${ryosei?.room ?: ""} ${ryosei?.name ?: ""} の荷物を引き渡します。",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
         },
         text = {
-            Column {
-                Text(
-                    text = "引き渡す荷物を選択してください",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                LazyColumn {
-                    items(parcels) { parcel ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(enabled = !isDelivering) { onToggle(parcel.id) }
-                                .padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(
-                                checked = parcel.id in selectedIds,
-                                onCheckedChange = { onToggle(parcel.id) },
-                                enabled = !isDelivering
+            LazyColumn {
+                items(parcels) { parcel ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isDelivering) { onToggle(parcel.id) }
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Checkbox(
+                            checked = parcel.id in selectedIds,
+                            onCheckedChange = { onToggle(parcel.id) },
+                            enabled = !isDelivering
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = parcelTypeLabel(parcel.parcelType),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
+                            Text(
+                                text = formatTimestamp(parcel.createdAt),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (!parcel.note.isNullOrBlank()) {
                                 Text(
-                                    text = parcelTypeLabel(parcel.parcelType),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = formatTimestamp(parcel.createdAt),
+                                    text = parcel.note,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
                     }
+                    HorizontalDivider()
                 }
             }
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                enabled = selectedIds.isNotEmpty() && !isDelivering
+                enabled = selectedIds.isNotEmpty() && !isDelivering,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE9EBF5) // 旧UI: data1D
+                )
             ) {
                 if (isDelivering) {
                     CircularProgressIndicator(
-                        modifier = Modifier.height(16.dp).width(16.dp),
+                        modifier = Modifier.size(20.dp),
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("引き渡し (${selectedIds.size}件)")
+                    Text(
+                        text = "引き渡し",
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         },
@@ -290,11 +419,16 @@ private fun DeliveryDialog(
                 onClick = onDismiss,
                 enabled = !isDelivering
             ) {
-                Text("キャンセル")
+                Text(
+                    text = "キャンセル",
+                    fontSize = 20.sp
+                )
             }
         }
     )
 }
+
+// ─── Helpers ──────────────────────────────────────────────
 
 private fun parcelTypeLabel(type: String): String = when (type) {
     "NORMAL" -> "普通"
