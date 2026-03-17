@@ -1,20 +1,55 @@
 package com.kumanodormitory.pokke.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "parcels")
 data class ParcelEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
-    val recipientName: String,
-    val roomNumber: String,
+    @PrimaryKey
+    val id: String,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long,
+
+    // 受け取り主
+    @ColumnInfo(name = "ryosei_id")
+    val ryoseiId: String,
+    @ColumnInfo(name = "owner_block")
+    val ownerBlock: String,
+    @ColumnInfo(name = "owner_room_name")
+    val ownerRoomName: String,
+    @ColumnInfo(name = "owner_name")
+    val ownerName: String,
+
+    // 荷物情報
+    @ColumnInfo(name = "parcel_type")
     val parcelType: String,
-    val note: String = "",
-    val registeredBy: String,
-    val registeredAt: Long = System.currentTimeMillis(),
-    val releasedAt: Long? = null,
-    val releasedTo: String? = null,
-    val isProxy: Boolean = false,
-    val status: String = "registered" // registered, released
+    val note: String? = null,
+
+    // 状態
+    val status: String = ParcelStatus.REGISTERED.name,
+    @ColumnInfo(name = "is_lost")
+    val isLost: Boolean = false,
+
+    // 登録情報
+    @ColumnInfo(name = "registered_by_name")
+    val registeredByName: String,
+
+    // 引渡情報
+    @ColumnInfo(name = "delivered_at")
+    val deliveredAt: Long? = null,
+    @ColumnInfo(name = "delivered_by_name")
+    val deliveredByName: String? = null,
+
+    // 同期
+    @ColumnInfo(name = "synced_at")
+    val syncedAt: Long? = null,
+    @ColumnInfo(name = "device_id")
+    val deviceId: String? = null,
+
+    // 泊まり事務当番
+    @ColumnInfo(name = "last_confirmed_at")
+    val lastConfirmedAt: Long? = null
 )
