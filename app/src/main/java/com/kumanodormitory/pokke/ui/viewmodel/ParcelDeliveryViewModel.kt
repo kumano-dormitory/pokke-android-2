@@ -26,6 +26,7 @@ data class ParcelDeliveryUiState(
     val selectedRyosei: RyoseiEntity? = null,
     val parcelsForRyosei: List<ParcelEntity> = emptyList(),
     val selectedParcelIds: Set<String> = emptySet(),
+    val showIdentityDialog: Boolean = false,
     val showDeliveryDialog: Boolean = false,
     val dutyPersonName: String = "",
     val isLoading: Boolean = false,
@@ -148,7 +149,24 @@ class ParcelDeliveryViewModel(
             selectedRyosei = ryosei,
             parcelsForRyosei = parcels,
             selectedParcelIds = parcels.map { it.id }.toSet(),
+            showIdentityDialog = true,
+            showDeliveryDialog = false
+        )
+    }
+
+    fun confirmIdentity() {
+        _uiState.value = _uiState.value.copy(
+            showIdentityDialog = false,
             showDeliveryDialog = true
+        )
+    }
+
+    fun dismissIdentityDialog() {
+        _uiState.value = _uiState.value.copy(
+            showIdentityDialog = false,
+            selectedRyosei = null,
+            parcelsForRyosei = emptyList(),
+            selectedParcelIds = emptySet()
         )
     }
 
@@ -160,6 +178,7 @@ class ParcelDeliveryViewModel(
 
     fun dismissDialog() {
         _uiState.value = _uiState.value.copy(
+            showIdentityDialog = false,
             showDeliveryDialog = false,
             selectedParcelIds = emptySet()
         )
