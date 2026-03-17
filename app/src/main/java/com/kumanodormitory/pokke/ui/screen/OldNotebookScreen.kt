@@ -9,21 +9,20 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -41,10 +41,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
@@ -52,6 +54,22 @@ import com.kumanodormitory.pokke.ui.viewmodel.OldNotebookViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// 旧アプリ準拠カラー
+private val OldNoteHeaderBg = Color(0xFFEEEEEE) // oldnote_theme
+private val RowEvenBg = Color.White
+private val RowOddBg = Color(0xFFEEEEEE) // verylightgray
+private val RowSeparator = Color(0xFFA9A9A9) // darkgray
+
+// 旧アプリ準拠: 列weight比率
+// 受取日時(10), 持ち主(7), 受取事務当(7), 種類(4), 引渡日時(6), 引渡者(7), 荷物確認日(10)
+private const val W_REGISTER_TIME = 10f
+private const val W_OWNER = 7f
+private const val W_REGISTER_STAFF = 7f
+private const val W_TYPE = 4f
+private const val W_RELEASE_TIME = 6f
+private const val W_RELEASE_STAFF = 7f
+private const val W_LAST_CONFIRMED = 10f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +87,7 @@ fun OldNotebookScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
     var showBlockDropdown by remember { mutableStateOf(false) }
 
-    val dateFormat = remember { SimpleDateFormat("yyyy/MM/dd", Locale.JAPAN) }
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.JAPAN) }
 
     val blockOptions = listOf(
         null to "全体",
@@ -81,13 +99,86 @@ fun OldNotebookScreen(
 
     Scaffold(
         topBar = {
+            // 旧アプリ準拠: ヘッダー（oldnote_theme背景 + 黒文字）
             TopAppBar(
-                title = { Text("旧型ノート") },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "履歴一覧表示の画面です。",
+                            fontSize = 24.sp,
+                            color = Color.Black
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        // ブロック選択（旧: Spinner）
+                        Text(text = "ブロック:", fontSize = 20.sp, color = Color.Black)
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Box {
+                            OutlinedButton(onClick = { showBlockDropdown = true }) {
+                                Text(
+                                    text = blockOptions.find { it.first == selectedBlock }?.second ?: "全体",
+                                    fontSize = 18.sp
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showBlockDropdown,
+                                onDismissRequest = { showBlockDropdown = false }
+                            ) {
+                                blockOptions.forEach { (value, label) ->
+                                    DropdownMenuItem(
+                                        text = { Text(label) },
+                                        onClick = {
+                                            viewModel.setBlock(value)
+                                            showBlockDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(30.dp))
+                        // 日付範囲表示（旧: From ~ To 縦並び）
+                        Column {
+                            Text(
+                                text = dateFormat.format(Date(startDate)),
+                                fontSize = 20.sp,
+                                color = Color.Black
+                            )
+                            Text(
+                                text = " ～ ",
+                                fontSize = 12.sp,
+                                color = Color.Black,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            )
+                            Text(
+                                text = dateFormat.format(Date(endDate)),
+                                fontSize = 20.sp,
+                                color = Color.Black
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        // カレンダーボタン（旧: ImageButton datebutton）
+                        IconButton(onClick = { showStartDatePicker = true }) {
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = "日付選択",
+                                tint = Color.Black
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(30.dp))
+                        // 検索ボタン（旧: search_show_button）
+                        Button(onClick = { viewModel.loadParcels() }) {
+                            Text("検索", fontSize = 16.sp)
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る", tint = Color.Black)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = OldNoteHeaderBg
+                )
             )
         },
         modifier = modifier
@@ -96,60 +187,12 @@ fun OldNotebookScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
+                .padding(start = 34.dp, end = 34.dp)
         ) {
-            // Filter row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Start date picker
-                OutlinedButton(onClick = { showStartDatePicker = true }) {
-                    Icon(Icons.Default.DateRange, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("開始: ${dateFormat.format(Date(startDate))}")
-                }
+            // テーブルヘッダー（旧アプリ準拠: 黒文字、20sp、weight比率）
+            OldNoteTableHeader()
 
-                // End date picker
-                OutlinedButton(onClick = { showEndDatePicker = true }) {
-                    Icon(Icons.Default.DateRange, contentDescription = null)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("終了: ${dateFormat.format(Date(endDate))}")
-                }
-
-                // Block filter dropdown
-                Box {
-                    OutlinedButton(onClick = { showBlockDropdown = true }) {
-                        Text(
-                            blockOptions.find { it.first == selectedBlock }?.second ?: "全体"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showBlockDropdown,
-                        onDismissRequest = { showBlockDropdown = false }
-                    ) {
-                        blockOptions.forEach { (value, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    viewModel.setBlock(value)
-                                    showBlockDropdown = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Table header
-            TableHeaderRow()
-
-            HorizontalDivider(thickness = 2.dp)
-
-            // Content
+            // テーブル本体
             if (uiState.isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -170,16 +213,18 @@ fun OldNotebookScreen(
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(uiState.parcels, key = { it.id }) { parcel ->
-                        ParcelTableRow(parcel, dateFormat)
-                        HorizontalDivider()
+                    itemsIndexed(uiState.parcels) { index, parcel ->
+                        OldNoteTableRow(
+                            parcel = parcel,
+                            bgColor = if (index % 2 == 0) RowEvenBg else RowOddBg
+                        )
                     }
                 }
             }
         }
     }
 
-    // Date picker dialogs
+    // 開始日DatePicker
     if (showStartDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = startDate)
         DatePickerDialog(
@@ -188,7 +233,8 @@ fun OldNotebookScreen(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { viewModel.setStartDate(it) }
                     showStartDatePicker = false
-                }) { Text("OK") }
+                    showEndDatePicker = true // 旧アプリ準拠: 範囲選択のため終了日も選択
+                }) { Text("OK → 終了日選択") }
             },
             dismissButton = {
                 TextButton(onClick = { showStartDatePicker = false }) { Text("キャンセル") }
@@ -198,6 +244,7 @@ fun OldNotebookScreen(
         }
     }
 
+    // 終了日DatePicker
     if (showEndDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDate)
         DatePickerDialog(
@@ -218,73 +265,99 @@ fun OldNotebookScreen(
 }
 
 @Composable
-private fun TableHeaderRow() {
+private fun OldNoteTableHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(vertical = 10.dp, horizontal = 8.dp)
+            .padding(bottom = 5.dp)
     ) {
-        TableCell(text = "登録日時", weight = 1.2f, fontWeight = FontWeight.Bold)
-        TableCell(text = "所有者", weight = 1.2f, fontWeight = FontWeight.Bold)
-        TableCell(text = "登録者", weight = 0.8f, fontWeight = FontWeight.Bold)
-        TableCell(text = "種別", weight = 0.7f, fontWeight = FontWeight.Bold)
-        TableCell(text = "引渡日時", weight = 1.2f, fontWeight = FontWeight.Bold)
-        TableCell(text = "引渡者", weight = 0.8f, fontWeight = FontWeight.Bold)
-        TableCell(text = "最終確認", weight = 1.1f, fontWeight = FontWeight.Bold)
+        OldNoteHeaderCell(text = "受取日時", weight = W_REGISTER_TIME)
+        OldNoteHeaderCell(text = "持ち主", weight = W_OWNER)
+        OldNoteHeaderCell(text = "受取事務当", weight = W_REGISTER_STAFF)
+        OldNoteHeaderCell(text = "種類", weight = W_TYPE)
+        OldNoteHeaderCell(text = "引渡日時", weight = W_RELEASE_TIME)
+        OldNoteHeaderCell(text = "引渡者", weight = W_RELEASE_STAFF)
+        OldNoteHeaderCell(text = "荷物確認日", weight = W_LAST_CONFIRMED)
     }
 }
 
 @Composable
-private fun ParcelTableRow(parcel: ParcelEntity, dateFormat: SimpleDateFormat) {
+private fun RowScope.OldNoteHeaderCell(text: String, weight: Float) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .weight(weight)
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        textAlign = TextAlign.Center,
+        color = Color.Black,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis
+    )
+}
+
+@Composable
+private fun OldNoteTableRow(parcel: ParcelEntity, bgColor: Color) {
+    // 旧アプリ準拠: darkgray(#A9A9A9)背景の行 + 白/灰色のセル背景
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp, horizontal = 8.dp)
+            .background(RowSeparator) // 行間のセパレータ色
     ) {
-        TableCell(
+        OldNoteDataCell(
             text = formatDateTime(parcel.createdAt),
-            weight = 1.2f
+            weight = W_REGISTER_TIME,
+            bgColor = bgColor
         )
-        TableCell(
+        OldNoteDataCell(
             text = "${parcel.ownerRoomName} ${parcel.ownerName}",
-            weight = 1.2f
+            weight = W_OWNER,
+            bgColor = bgColor
         )
-        TableCell(
+        OldNoteDataCell(
             text = parcel.registeredByName,
-            weight = 0.8f
+            weight = W_REGISTER_STAFF,
+            bgColor = bgColor
         )
-        TableCell(
+        OldNoteDataCell(
             text = formatParcelType(parcel.parcelType),
-            weight = 0.7f
+            weight = W_TYPE,
+            bgColor = bgColor
         )
-        TableCell(
-            text = parcel.deliveredAt?.let { formatDateTime(it) } ?: "-",
-            weight = 1.2f
+        OldNoteDataCell(
+            text = parcel.deliveredAt?.let { formatDateTime(it) } ?: "",
+            weight = W_RELEASE_TIME,
+            bgColor = bgColor
         )
-        TableCell(
-            text = parcel.deliveredByName ?: "-",
-            weight = 0.8f
+        OldNoteDataCell(
+            text = parcel.deliveredByName ?: "",
+            weight = W_RELEASE_STAFF,
+            bgColor = bgColor
         )
-        TableCell(
-            text = parcel.lastConfirmedAt?.let { formatDateTime(it) } ?: "-",
-            weight = 1.1f
+        OldNoteDataCell(
+            text = parcel.lastConfirmedAt?.let { formatDateTime(it) } ?: "",
+            weight = W_LAST_CONFIRMED,
+            bgColor = bgColor
         )
     }
 }
 
 @Composable
-private fun RowScope.TableCell(
+private fun RowScope.OldNoteDataCell(
     text: String,
     weight: Float,
-    fontWeight: FontWeight = FontWeight.Normal
+    bgColor: Color
 ) {
     Text(
         text = text,
-        modifier = Modifier.weight(weight),
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = fontWeight,
-        textAlign = TextAlign.Start,
+        modifier = Modifier
+            .weight(weight)
+            .background(bgColor)
+            .padding(start = 1.dp)
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        textAlign = TextAlign.Center,
+        fontSize = 13.sp,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis
     )

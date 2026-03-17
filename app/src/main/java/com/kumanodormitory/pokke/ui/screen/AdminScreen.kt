@@ -21,7 +21,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,14 +41,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
+import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
+import com.kumanodormitory.pokke.ui.viewmodel.AdminUiState
 import com.kumanodormitory.pokke.ui.viewmodel.AdminViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +89,7 @@ fun AdminScreen(
                 modifier = Modifier.padding(innerPadding)
             )
         } else {
-            AdminMenuScreen(
+            AdminMenuContent(
                 uiState = uiState,
                 onSyncClick = { viewModel.showSyncSnackbar() },
                 onConfirmLost = { viewModel.confirmLost(it) },
@@ -99,6 +99,10 @@ fun AdminScreen(
     }
 }
 
+/**
+ * パスワード認証画面
+ * 旧アプリ準拠: EditText + 認証ボタン + "OK"入力で認証
+ */
 @Composable
 private fun PasswordAuthScreen(
     passwordError: String?,
@@ -127,6 +131,12 @@ private fun PasswordAuthScreen(
                     style = MaterialTheme.typography.headlineSmall
                 )
 
+                Text(
+                    text = "本当に実行する場合はパスワードを入力してください。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
@@ -149,90 +159,111 @@ private fun PasswordAuthScreen(
     }
 }
 
+/**
+ * 管理メニュー画面
+ * 旧アプリ準拠: 横3カラムレイアウト
+ * - 左カラム: サーバー同期（プレースホルダー）
+ * - 中カラム: 手動同期
+ * - 右カラム: 紛失荷物管理
+ */
 @Composable
-private fun AdminMenuScreen(
-    uiState: com.kumanodormitory.pokke.ui.viewmodel.AdminUiState,
+private fun AdminMenuContent(
+    uiState: AdminUiState,
     onSyncClick: () -> Unit,
     onConfirmLost: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
+    Row(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(top = 80.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        // Server sync card
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // 左カラム: サーバー同期ステータス（旧: SharingStatus10相当）
+        Column(
+            modifier = Modifier
+                .width(300.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "サーバー同期",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "ローカルDB完結モード\n同期機能は未実装です。\nサーバー構築後にこの画面から同期を管理できます。",
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 22.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onSyncClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF22FF22)
+                )
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "サーバー同期",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "ローカルDB完結モード - 同期未実装",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedButton(onClick = onSyncClick) {
-                        Text("手動同期")
-                    }
-                }
+                Text("手動同期実行", color = Color.Black)
             }
         }
 
-        // Lost parcels section
-        item {
+        // 中カラム: 同期ステータス表示（旧: SharingStatus30相当 → プレースホルダー）
+        Column(
+            modifier = Modifier
+                .width(300.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Text(
-                text = "紛失荷物管理",
-                style = MaterialTheme.typography.titleLarge
+                text = "同期ステータス",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text = "最終同期: 未実行\nステータス: ローカルのみ",
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 22.sp
             )
         }
 
-        if (uiState.lostParcels.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // 右カラム: 紛失荷物管理
+        Column(
+            modifier = Modifier
+                .width(400.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = "紛失荷物管理",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (uiState.lostParcels.isEmpty()) {
+                Text(
+                    text = "紛失フラグのついた荷物はありません",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "紛失フラグのついた荷物はありません",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    items(uiState.lostParcels, key = { it.id }) { parcel ->
+                        LostParcelItem(
+                            parcel = parcel,
+                            onConfirmLost = onConfirmLost
                         )
                     }
                 }
-            }
-        } else {
-            items(uiState.lostParcels, key = { it.id }) { parcel ->
-                LostParcelCard(
-                    parcel = parcel,
-                    onConfirmLost = onConfirmLost
-                )
             }
         }
     }
 }
 
 @Composable
-private fun LostParcelCard(
+private fun LostParcelItem(
     parcel: ParcelEntity,
     onConfirmLost: (String) -> Unit
 ) {
     var showConfirmDialog by remember { mutableStateOf(false) }
-    val dateTimeFormat = remember { SimpleDateFormat("yyyy/MM/dd HH:mm", Locale.JAPAN) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -241,7 +272,7 @@ private fun LostParcelCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -256,7 +287,7 @@ private fun LostParcelCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "登録: ${dateTimeFormat.format(Date(parcel.createdAt))}",
+                    text = "登録: ${formatDateTime(parcel.createdAt)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -265,12 +296,12 @@ private fun LostParcelCard(
             Button(
                 onClick = { showConfirmDialog = true },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = Color(0xFFFF2222) // 旧アプリ準拠: 赤ボタン
                 )
             ) {
-                Icon(Icons.Default.Warning, contentDescription = null)
+                Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("紛失確定")
+                Text("紛失確定", color = Color.White)
             }
         }
     }
@@ -280,7 +311,11 @@ private fun LostParcelCard(
             onDismissRequest = { showConfirmDialog = false },
             title = { Text("紛失確定") },
             text = {
-                Text("${parcel.ownerRoomName} ${parcel.ownerName} の荷物（${formatParcelType(parcel.parcelType)}）を紛失確定しますか？この操作は取り消せません。")
+                Text(
+                    "本当に実行する場合は「確定」を押してください。\n\n" +
+                            "${parcel.ownerRoomName} ${parcel.ownerName} の荷物（${formatParcelType(parcel.parcelType)}）" +
+                            "を紛失確定します。この操作は取り消せません。"
+                )
             },
             confirmButton = {
                 TextButton(
