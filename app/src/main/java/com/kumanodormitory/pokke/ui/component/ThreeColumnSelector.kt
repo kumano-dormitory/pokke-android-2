@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
@@ -67,10 +66,10 @@ fun ThreeColumnSelector(
         modifier = modifier.fillMaxSize(),
         verticalAlignment = Alignment.Top
     ) {
-        // ===== ブロックカラム（旧: 160dp幅） =====
+        // ===== ブロックカラム =====
         ListColumn(
             modifier = Modifier
-                .width(160.dp)
+                .weight(0.15f)
                 .fillMaxHeight()
         ) {
             items(blocks) { block ->
@@ -88,13 +87,12 @@ fun ThreeColumnSelector(
             }
         }
 
-        // ===== スペーサー（旧: 100dp） =====
-        Spacer(modifier = Modifier.width(50.dp))
+        Spacer(modifier = Modifier.weight(0.025f))
 
-        // ===== 部屋カラム（旧: 160dp幅） =====
+        // ===== 部屋カラム =====
         ListColumn(
             modifier = Modifier
-                .width(160.dp)
+                .weight(0.15f)
                 .fillMaxHeight()
         ) {
             items(rooms) { room ->
@@ -112,13 +110,12 @@ fun ThreeColumnSelector(
             }
         }
 
-        // ===== スペーサー（旧: 100dp） =====
-        Spacer(modifier = Modifier.width(50.dp))
+        Spacer(modifier = Modifier.weight(0.025f))
 
-        // ===== 寮生カラム（旧: 540dp幅、検索バー付き） =====
+        // ===== 寮生カラム（検索バー付き） =====
         Column(
             modifier = Modifier
-                .weight(1f)
+                .weight(0.55f)
                 .fillMaxHeight()
         ) {
             // 検索バー（旧: EditText 225dp + ImageButton 40dp）
