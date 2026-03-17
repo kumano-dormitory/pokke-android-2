@@ -1,27 +1,47 @@
 package com.kumanodormitory.pokke.ui.component
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
+import com.kumanodormitory.pokke.ui.util.debounceClickableItem
+
+// 旧アプリの色定義を再現
+private val ListBorderColor = Color(0xFFAAAAAA)
+private val SelectedBlockColor = Color(0xFFADD8E6)   // lightblue — 旧アプリのブロック選択色
+private val SelectedRoomColor = Color(0xFFADD8E6)     // lightblue
+private val ListItemTextColor = Color.Black
+private val DisabledTextColor = Color(0xFFA0A0A0)
+private val DividerColor = Color(0xFFDDDDDD)
 
 @Composable
 fun ThreeColumnSelector(
@@ -36,113 +56,195 @@ fun ThreeColumnSelector(
     showSearch: Boolean = false,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
+    onSearchSubmit: () -> Unit = {},
     modifier: Modifier = Modifier,
-    isRyoseiEnabled: (RyoseiEntity) -> Boolean = { true }
+    isRyoseiEnabled: (RyoseiEntity) -> Boolean = { true },
+    onBlockClick: (() -> Unit)? = null,
+    onRoomClick: (() -> Unit)? = null,
+    onRyoseiClick: (() -> Unit)? = null
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
+    Row(
+        modifier = modifier.fillMaxSize(),
+        verticalAlignment = Alignment.Top
+    ) {
+        // ===== ブロックカラム（旧: 160dp幅） =====
+        ListColumn(
+            modifier = Modifier
+                .width(160.dp)
+                .fillMaxHeight()
+        ) {
+            items(blocks) { block ->
+                val isSelected = block == selectedBlock
+                ListItem(
+                    text = block,
+                    isSelected = isSelected,
+                    selectedColor = SelectedBlockColor,
+                    onClick = {
+                        onBlockClick?.invoke()
+                        onBlockSelected(block)
+                    }
+                )
+                HorizontalDivider(color = DividerColor, thickness = 1.dp)
+            }
+        }
+
+        // ===== スペーサー（旧: 100dp） =====
+        Spacer(modifier = Modifier.width(50.dp))
+
+        // ===== 部屋カラム（旧: 160dp幅） =====
+        ListColumn(
+            modifier = Modifier
+                .width(160.dp)
+                .fillMaxHeight()
+        ) {
+            items(rooms) { room ->
+                val isSelected = room == selectedRoom
+                ListItem(
+                    text = room,
+                    isSelected = isSelected,
+                    selectedColor = SelectedRoomColor,
+                    onClick = {
+                        onRoomClick?.invoke()
+                        onRoomSelected(room)
+                    }
+                )
+                HorizontalDivider(color = DividerColor, thickness = 1.dp)
+            }
+        }
+
+        // ===== スペーサー（旧: 100dp） =====
+        Spacer(modifier = Modifier.width(50.dp))
+
+        // ===== 寮生カラム（旧: 540dp幅、検索バー付き） =====
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
+                .fillMaxHeight()
         ) {
-            // Block column
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                items(blocks) { block ->
-                    val isSelected = block == selectedBlock
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .clickable { onBlockSelected(block) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
+            // 検索バー（旧: EditText 225dp + ImageButton 40dp）
+            if (showSearch) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = onSearchQueryChange,
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("検索したい名前を入力", fontSize = 14.sp) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() })
+                    )
+                    IconButton(
+                        onClick = onSearchSubmit,
+                        modifier = Modifier.size(48.dp)
                     ) {
-                        Text(
-                            text = block,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurface
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "検索",
+                            modifier = Modifier.size(28.dp)
                         )
                     }
-                    HorizontalDivider()
                 }
             }
 
-            // Room column
-            LazyColumn(
+            // 寮生リスト
+            ListColumn(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .weight(1f)
-                    .fillMaxHeight()
-            ) {
-                items(rooms) { room ->
-                    val isSelected = room == selectedRoom
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .clickable { onRoomSelected(room) }
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = room,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                            else MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    HorizontalDivider()
-                }
-            }
-
-            // Ryosei column
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1.5f)
-                    .fillMaxHeight()
             ) {
                 items(ryoseiList) { ryosei ->
                     val enabled = isRyoseiEnabled(ryosei)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                if (enabled) Modifier.clickable { onRyoseiSelected(ryosei) }
-                                else Modifier
-                            )
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "${ryosei.room}  ${ryosei.name}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (enabled) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    }
-                    HorizontalDivider()
+                    RyoseiListItem(
+                        ryosei = ryosei,
+                        enabled = enabled,
+                        onClick = {
+                            if (enabled) {
+                                onRyoseiClick?.invoke()
+                                onRyoseiSelected(ryosei)
+                            }
+                        }
+                    )
+                    HorizontalDivider(color = DividerColor, thickness = 1.dp)
                 }
             }
         }
+    }
+}
 
-        if (showSearch) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                placeholder = { Text("検索") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "検索") },
-                singleLine = true
-            )
+// ===== リストカラム（枠線付き） =====
+@Composable
+private fun ListColumn(
+    modifier: Modifier = Modifier,
+    content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .border(1.dp, ListBorderColor)
+            .background(Color.White)
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            content()
         }
+    }
+}
+
+// ===== 汎用リストアイテム（ブロック・部屋用） =====
+@Composable
+private fun ListItem(
+    text: String,
+    isSelected: Boolean,
+    selectedColor: Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (isSelected) selectedColor else Color.Transparent)
+            .debounceClickableItem(400L) { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(
+            text = text,
+            fontSize = 20.sp,
+            color = ListItemTextColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+// ===== 寮生リストアイテム（旧: "部屋番号 寮生名" 形式） =====
+@Composable
+private fun RyoseiListItem(
+    ryosei: RyoseiEntity,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (enabled) {
+                    Modifier.debounceClickableItem(400L) { onClick() }
+                } else {
+                    Modifier
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Text(
+            text = "${ryosei.room}  ${ryosei.name}",
+            fontSize = 20.sp,
+            color = if (enabled) ListItemTextColor else DisabledTextColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
