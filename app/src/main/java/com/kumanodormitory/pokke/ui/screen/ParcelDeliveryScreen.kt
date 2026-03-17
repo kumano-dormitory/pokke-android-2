@@ -41,8 +41,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kumanodormitory.pokke.R
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
+import com.kumanodormitory.pokke.ui.util.SoundManager
+import com.kumanodormitory.pokke.ui.util.debounceClickable
+import com.kumanodormitory.pokke.ui.util.debounceClickableItem
+import com.kumanodormitory.pokke.ui.util.formatDateTime
+import com.kumanodormitory.pokke.ui.util.formatParcelType
 import com.kumanodormitory.pokke.ui.viewmodel.ParcelDeliveryUiState
 import com.kumanodormitory.pokke.ui.viewmodel.ParcelDeliveryViewModel
 
@@ -88,7 +94,7 @@ fun ParcelDeliveryScreen(
                 selectedBlock = uiState.selectedBlock,
                 onSelectBlock = { block ->
                     viewModel.selectBlock(block)
-                    // SoundManager.play(context, R.raw.cursor)
+                    SoundManager.play(context, R.raw.cursor)
                 },
                 modifier = Modifier.width(160.dp).fillMaxHeight()
             )
@@ -101,7 +107,7 @@ fun ParcelDeliveryScreen(
                 selectedRoom = uiState.selectedRoom,
                 onSelectRoom = { room ->
                     viewModel.selectRoom(room)
-                    // SoundManager.play(context, R.raw.cursor2)
+                    SoundManager.play(context, R.raw.cursor2)
                 },
                 modifier = Modifier.width(160.dp).fillMaxHeight()
             )
@@ -113,7 +119,7 @@ fun ParcelDeliveryScreen(
                 ryoseiList = uiState.ryoseiWithParcels,
                 onSelectRyosei = { ryosei ->
                     viewModel.selectRyosei(ryosei)
-                    // SoundManager.play(context, R.raw.cursor2)
+                    SoundManager.play(context, R.raw.cursor2)
                 },
                 modifier = Modifier.width(540.dp).fillMaxHeight()
             )
@@ -133,7 +139,7 @@ fun ParcelDeliveryScreen(
             onToggle = viewModel::toggleParcelSelection,
             onConfirm = {
                 viewModel.deliverSelected {
-                    // SoundManager.play(context, R.raw.done)
+                    SoundManager.play(context, R.raw.done)
                     onNavigateBack()
                 }
             },
@@ -234,7 +240,7 @@ private fun BlockColumn(
                         if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surface
                     )
-                    .clickable { onSelectBlock(block) }
+                    .debounceClickableItem(400L) { onSelectBlock(block) }
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
@@ -270,7 +276,7 @@ private fun RoomColumn(
                         if (isSelected) MaterialTheme.colorScheme.secondaryContainer
                         else MaterialTheme.colorScheme.surface
                     )
-                    .clickable { onSelectRoom(room) }
+                    .debounceClickableItem(400L) { onSelectRoom(room) }
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
@@ -309,7 +315,7 @@ private fun RyoseiColumnWithSearch(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectRyosei(ryosei) }
+                        .debounceClickableItem(400L) { onSelectRyosei(ryosei) }
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     // 旧UI: "部屋名 寮生名" + 荷物数を2行表示 (simple_list_item_2)
@@ -393,24 +399,36 @@ private fun DeliveryDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = onConfirm,
-                enabled = selectedIds.isNotEmpty() && !isDelivering,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFE9EBF5) // 旧UI: data1D
-                )
+            val canConfirm = selectedIds.isNotEmpty() && !isDelivering
+            Box(
+                modifier = Modifier
+                    .then(
+                        if (canConfirm) {
+                            Modifier.debounceClickable(1000L) { onConfirm() }
+                        } else {
+                            Modifier
+                        }
+                    )
             ) {
-                if (isDelivering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
+                Button(
+                    onClick = {},
+                    enabled = canConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE9EBF5) // 旧UI: data1D
                     )
-                } else {
-                    Text(
-                        text = "引き渡し",
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                ) {
+                    if (isDelivering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "引き渡し",
+                            fontSize = 20.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         },

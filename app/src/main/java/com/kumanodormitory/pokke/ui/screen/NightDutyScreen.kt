@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,7 +51,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kumanodormitory.pokke.R
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
+import com.kumanodormitory.pokke.ui.util.SoundManager
+import com.kumanodormitory.pokke.ui.util.debounceClickable
+import com.kumanodormitory.pokke.ui.util.debounceClickableItem
 import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
 import com.kumanodormitory.pokke.ui.viewmodel.NightDutyUiState
@@ -145,13 +150,13 @@ fun NightDutyScreen(
                 onPhase1Complete = {
                     if (uiState.allCheckedPhase1) {
                         showPhaseTransitionDialog = true
-                        // SoundManager.play(context, R.raw.cursor2)
+                        SoundManager.playCursorBlock(context)
                     }
                 },
                 onPhase2Complete = {
                     if (uiState.allCheckedPhase2) {
                         viewModel.completeNightDuty(onNavigateBack)
-                        // SoundManager.play(context, R.raw.done)
+                        SoundManager.playDone(context)
                     }
                 },
                 enablePhase1Button = uiState.allCheckedPhase1,
@@ -179,7 +184,7 @@ fun NightDutyScreen(
                         uiState = uiState,
                         onToggleCheck = { parcelId ->
                             viewModel.toggleCheck(parcelId)
-                            // SoundManager.play(context, R.raw.cursor2)
+                            SoundManager.playCursorBlock(context)
                         },
                         onToggleLost = viewModel::toggleLost
                     )
@@ -203,7 +208,7 @@ fun NightDutyScreen(
                 TextButton(onClick = {
                     showPhaseTransitionDialog = false
                     viewModel.advanceToPhase2()
-                    // SoundManager.play(context, R.raw.transition)
+                    SoundManager.playTransition(context)
                 }) {
                     Text("荷物札確認へ")
                 }
