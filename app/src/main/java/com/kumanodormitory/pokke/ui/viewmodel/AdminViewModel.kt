@@ -27,7 +27,7 @@ class AdminViewModel(
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
     companion object {
-        private const val ADMIN_PASSWORD = "pokke-admin"
+        private const val ADMIN_PASSWORD = "PassworD"
     }
 
     fun authenticate(password: String) {
