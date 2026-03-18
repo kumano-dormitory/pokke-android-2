@@ -103,143 +103,135 @@ fun OldNotebookScreen(
 
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        // 1段目: タイトル + ブロック選択
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "荷物履歴一覧",
-                                fontSize = 22.sp,
-                                color = Color.Black,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.weight(1f))
-                            Text(text = "ブロック:", fontSize = 16.sp, color = Color.Black)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Box {
-                                OutlinedButton(onClick = { showBlockDropdown = true }) {
-                                    Text(
-                                        text = blockOptions.find { it.first == selectedBlock }?.second ?: "全体",
-                                        fontSize = 16.sp
-                                    )
-                                }
-                                DropdownMenu(
-                                    expanded = showBlockDropdown,
-                                    onDismissRequest = { showBlockDropdown = false }
-                                ) {
-                                    blockOptions.forEach { (value, label) ->
-                                        DropdownMenuItem(
-                                            text = { Text(label) },
-                                            onClick = {
-                                                viewModel.setBlock(value)
-                                                showBlockDropdown = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // 2段目: 日付選択ボタン + プリセット + 検索
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // 開始日ボタン
-                            OutlinedButton(onClick = { showStartDatePicker = true }) {
-                                Text(
-                                    text = dateFormat.format(Date(startDate)),
-                                    fontSize = 14.sp
-                                )
-                            }
-                            Text(
-                                text = " ～ ",
-                                fontSize = 14.sp,
-                                color = Color.Black
-                            )
-                            // 終了日ボタン
-                            OutlinedButton(onClick = { showEndDatePicker = true }) {
-                                Text(
-                                    text = dateFormat.format(Date(endDate)),
-                                    fontSize = 14.sp
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            // プリセットボタン
-                            val presetButtonColors = ButtonDefaults.outlinedButtonColors()
-                            OutlinedButton(
-                                onClick = {
-                                    SoundManager.playSearch(context)
-                                    val today = todayRange(0)
-                                    viewModel.setStartDate(today.first)
-                                    viewModel.setEndDate(today.second)
-                                    viewModel.loadParcels()
-                                }
-                            ) {
-                                Text("今日", fontSize = 12.sp)
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    SoundManager.playSearch(context)
-                                    val range = todayRange(3)
-                                    viewModel.setStartDate(range.first)
-                                    viewModel.setEndDate(range.second)
-                                    viewModel.loadParcels()
-                                }
-                            ) {
-                                Text("3日間", fontSize = 12.sp)
-                            }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    SoundManager.playSearch(context)
-                                    val range = todayRange(7)
-                                    viewModel.setStartDate(range.first)
-                                    viewModel.setEndDate(range.second)
-                                    viewModel.loadParcels()
-                                }
-                            ) {
-                                Text("1週間", fontSize = 12.sp)
-                            }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            Button(onClick = {
-                                SoundManager.playSearch(context)
-                                viewModel.loadParcels()
-                            }) {
-                                Text("検索", fontSize = 14.sp)
-                            }
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "戻る", tint = Color.Black)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = OldNoteHeaderBg
+    Column(modifier = modifier.fillMaxSize()) {
+        // カスタムヘッダー（TopAppBarの高さ制限を回避）
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(OldNoteHeaderBg)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            // 1段目: 戻るボタン + タイトル + ブロック選択
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "戻る", tint = Color.Black)
+                }
+                Text(
+                    text = "荷物履歴一覧",
+                    fontSize = 22.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
                 )
-            )
-        },
-        modifier = modifier
-    ) { innerPadding ->
+                Spacer(modifier = Modifier.weight(1f))
+                Text(text = "ブロック:", fontSize = 16.sp, color = Color.Black)
+                Spacer(modifier = Modifier.width(4.dp))
+                Box {
+                    OutlinedButton(onClick = { showBlockDropdown = true }) {
+                        Text(
+                            text = blockOptions.find { it.first == selectedBlock }?.second ?: "全体",
+                            fontSize = 16.sp
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showBlockDropdown,
+                        onDismissRequest = { showBlockDropdown = false }
+                    ) {
+                        blockOptions.forEach { (value, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    viewModel.setBlock(value)
+                                    showBlockDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 2段目: 日付選択ボタン + プリセット + 検索
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 48.dp)
+            ) {
+                OutlinedButton(onClick = { showStartDatePicker = true }) {
+                    Text(
+                        text = dateFormat.format(Date(startDate)),
+                        fontSize = 14.sp
+                    )
+                }
+                Text(
+                    text = " ～ ",
+                    fontSize = 14.sp,
+                    color = Color.Black
+                )
+                OutlinedButton(onClick = { showEndDatePicker = true }) {
+                    Text(
+                        text = dateFormat.format(Date(endDate)),
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        SoundManager.playSearch(context)
+                        val today = todayRange(0)
+                        viewModel.setStartDate(today.first)
+                        viewModel.setEndDate(today.second)
+                        viewModel.loadParcels()
+                    }
+                ) {
+                    Text("今日", fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                OutlinedButton(
+                    onClick = {
+                        SoundManager.playSearch(context)
+                        val range = todayRange(3)
+                        viewModel.setStartDate(range.first)
+                        viewModel.setEndDate(range.second)
+                        viewModel.loadParcels()
+                    }
+                ) {
+                    Text("3日間", fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                OutlinedButton(
+                    onClick = {
+                        SoundManager.playSearch(context)
+                        val range = todayRange(7)
+                        viewModel.setStartDate(range.first)
+                        viewModel.setEndDate(range.second)
+                        viewModel.loadParcels()
+                    }
+                ) {
+                    Text("1週間", fontSize = 12.sp)
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Button(onClick = {
+                    SoundManager.playSearch(context)
+                    viewModel.loadParcels()
+                }) {
+                    Text("検索", fontSize = 14.sp)
+                }
+            }
+        }
+
+        // テーブル本体
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
                 .padding(start = 34.dp, end = 34.dp)
         ) {
             // テーブルヘッダー（旧アプリ準拠: 黒文字、20sp、weight比率）
@@ -393,7 +385,7 @@ private fun OldNoteTableRow(parcel: ParcelEntity, bgColor: Color) {
             bgColor = bgColor
         )
         OldNoteDataCell(
-            text = parcel.registeredByName,
+            text = "(${parcel.registeredByName})",
             weight = W_REGISTER_STAFF,
             bgColor = bgColor
         )
@@ -408,7 +400,7 @@ private fun OldNoteTableRow(parcel: ParcelEntity, bgColor: Color) {
             bgColor = bgColor
         )
         OldNoteDataCell(
-            text = parcel.deliveredByName ?: "",
+            text = parcel.deliveredByName?.let { "($it)" } ?: "",
             weight = W_RELEASE_STAFF,
             bgColor = bgColor
         )
