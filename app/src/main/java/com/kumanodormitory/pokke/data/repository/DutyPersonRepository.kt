@@ -10,6 +10,7 @@ class DutyPersonRepository(private val dutyPersonDao: DutyPersonDao) {
         dutyPersonDao.getCurrent()
 
     suspend fun changeDutyPerson(name: String, updatedAt: Long) {
+        dutyPersonDao.deleteAll()
         val entity = DutyPersonEntity(
             id = "duty_person",
             name = name,

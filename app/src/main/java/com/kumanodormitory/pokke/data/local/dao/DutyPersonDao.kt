@@ -18,4 +18,7 @@ interface DutyPersonDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(dutyPerson: DutyPersonEntity)
+
+    @Query("DELETE FROM duty_person")
+    suspend fun deleteAll()
 }
