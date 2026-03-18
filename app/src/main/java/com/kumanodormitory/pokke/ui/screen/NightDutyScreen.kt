@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -60,6 +62,7 @@ import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
 import com.kumanodormitory.pokke.ui.viewmodel.NightDutyUiState
 import com.kumanodormitory.pokke.ui.viewmodel.NightDutyViewModel
+import android.content.Context
 
 // 旧アプリ準拠の棟別カラー定義
 private object BuildingColors {
@@ -106,8 +109,18 @@ fun NightDutyScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("night_duty", Context.MODE_PRIVATE) }
 
     var showPhaseTransitionDialog by remember { mutableStateOf(false) }
+    var showResumeDialog by remember { mutableStateOf(false) }
+    var showSuspendConfirmDialog by remember { mutableStateOf(false) }
+
+    // Check for suspended data on first composition
+    LaunchedEffect(Unit) {
+        if (viewModel.hasSuspendedData(prefs)) {
+            showResumeDialog = true
+        }
+    }
 
     if (uiState.isLoading) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -128,6 +141,16 @@ fun NightDutyScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "戻る")
+                    }
+                },
+                actions = {
+                    Button(
+                        onClick = { showSuspendConfirmDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF9800)
+                        )
+                    ) {
+                        Text("中断", color = Color.White, fontSize = 16.sp)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -155,8 +178,10 @@ fun NightDutyScreen(
                 },
                 onPhase2Complete = {
                     if (uiState.allCheckedPhase2) {
-                        viewModel.completeNightDuty(onNavigateBack)
-                        SoundManager.playDone(context)
+                        viewModel.completeNightDuty(prefs) {
+                            SoundManager.playDone(context)
+                            onNavigateBack()
+                        }
                     }
                 },
                 enablePhase1Button = uiState.allCheckedPhase1,
@@ -216,6 +241,60 @@ fun NightDutyScreen(
             dismissButton = {
                 TextButton(onClick = { showPhaseTransitionDialog = false }) {
                     Text("キャンセル")
+                }
+            }
+        )
+    }
+
+    // 中断確認ダイアログ
+    if (showSuspendConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showSuspendConfirmDialog = false },
+            title = { Text("中断確認") },
+            text = {
+                Text("泊まり事務当番を中断しますか？\n現在のチェック状態を保存し、後で再開できます。")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.suspend(prefs)
+                    showSuspendConfirmDialog = false
+                    SoundManager.playTransition(context)
+                    onNavigateBack()
+                }) {
+                    Text("中断して保存")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSuspendConfirmDialog = false }) {
+                    Text("キャンセル")
+                }
+            }
+        )
+    }
+
+    // 再開ダイアログ
+    if (showResumeDialog) {
+        AlertDialog(
+            onDismissRequest = { showResumeDialog = false },
+            title = { Text("中断データあり") },
+            text = {
+                Text("前回中断した泊まり事務当番のデータがあります。\n再開しますか？")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resume(prefs)
+                    showResumeDialog = false
+                    SoundManager.playTransition(context)
+                }) {
+                    Text("再開する")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    viewModel.clearSuspendedData(prefs)
+                    showResumeDialog = false
+                }) {
+                    Text("最初からやる")
                 }
             }
         )
