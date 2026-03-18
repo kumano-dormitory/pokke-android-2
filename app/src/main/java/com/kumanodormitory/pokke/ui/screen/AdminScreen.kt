@@ -157,6 +157,7 @@ private fun PasswordAuthScreen(
                     isError = passwordError != null,
                     supportingText = passwordError?.let { { Text(it) } },
                     singleLine = true,
+                    textStyle = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.fillMaxWidth()
                 )
 
