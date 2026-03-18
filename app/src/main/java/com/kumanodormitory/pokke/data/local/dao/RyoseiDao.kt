@@ -35,6 +35,18 @@ interface RyoseiDao {
 
     @Query(
         """
+        SELECT * FROM ryosei
+        WHERE (name LIKE '%' || :query || '%'
+            OR name_kana LIKE '%' || :query || '%'
+            OR name_alphabet LIKE '%' || :query || '%'
+            OR room LIKE '%' || :query || '%')
+        ORDER BY leaving_date IS NOT NULL, block, room
+        """
+    )
+    fun searchIncludingLeft(query: String): Flow<List<RyoseiEntity>>
+
+    @Query(
+        """
         SELECT DISTINCT r.* FROM ryosei r
         INNER JOIN parcels p ON r.id = p.ryosei_id
         WHERE p.status = 'REGISTERED'

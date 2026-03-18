@@ -58,6 +58,7 @@ fun ThreeColumnSelector(
     onSearchSubmit: () -> Unit = {},
     modifier: Modifier = Modifier,
     isRyoseiEnabled: (RyoseiEntity) -> Boolean = { true },
+    ryoseiSuffix: (RyoseiEntity) -> String? = { null },
     onBlockClick: (() -> Unit)? = null,
     onRoomClick: (() -> Unit)? = null,
     onRyoseiClick: (() -> Unit)? = null
@@ -156,9 +157,11 @@ fun ThreeColumnSelector(
             ) {
                 items(ryoseiList) { ryosei ->
                     val enabled = isRyoseiEnabled(ryosei)
+                    val suffix = ryoseiSuffix(ryosei)
                     RyoseiListItem(
                         ryosei = ryosei,
                         enabled = enabled,
+                        suffix = suffix,
                         onClick = {
                             if (enabled) {
                                 onRyoseiClick?.invoke()
@@ -222,6 +225,7 @@ private fun ListItem(
 private fun RyoseiListItem(
     ryosei: RyoseiEntity,
     enabled: Boolean,
+    suffix: String? = null,
     onClick: () -> Unit
 ) {
     Box(
@@ -236,12 +240,23 @@ private fun RyoseiListItem(
             )
             .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
-        Text(
-            text = "${ryosei.room}  ${ryosei.name}",
-            fontSize = 20.sp,
-            color = if (enabled) ListItemTextColor else DisabledTextColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row {
+            Text(
+                text = "${ryosei.room}  ${ryosei.name}",
+                fontSize = 20.sp,
+                color = if (enabled) ListItemTextColor else DisabledTextColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            if (suffix != null) {
+                Spacer(modifier = Modifier.padding(start = 8.dp))
+                Text(
+                    text = suffix,
+                    fontSize = 16.sp,
+                    color = Color.Red
+                )
+            }
+        }
     }
 }
