@@ -85,6 +85,10 @@ class DutyChangeViewModel(
         _selectedRyosei.value = null
     }
 
+    fun resetUiState() {
+        _uiState.value = DutyChangeUiState.Idle
+    }
+
     fun confirmDutyChange() {
         val ryosei = _selectedRyosei.value ?: return
         viewModelScope.launch {
