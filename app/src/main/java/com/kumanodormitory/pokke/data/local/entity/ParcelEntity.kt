@@ -51,5 +51,9 @@ data class ParcelEntity(
 
     // 泊まり事務当番
     @ColumnInfo(name = "last_confirmed_at")
-    val lastConfirmedAt: Long? = null
+    val lastConfirmedAt: Long? = null,
+
+    // 紛失確定
+    @ColumnInfo(name = "lost_confirmed_at", defaultValue = "NULL")
+    val lostConfirmedAt: Long? = null
 )

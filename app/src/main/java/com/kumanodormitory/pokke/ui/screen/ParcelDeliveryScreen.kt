@@ -33,7 +33,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
 import com.kumanodormitory.pokke.ui.util.SoundManager
-import com.kumanodormitory.pokke.ui.util.debounceClickable
 import com.kumanodormitory.pokke.ui.util.debounceClickableItem
 import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
@@ -129,6 +130,8 @@ fun ParcelDeliveryScreen(
 
     // 本人確認ダイアログ
     if (uiState.showIdentityDialog) {
+        var identityChecked by remember { mutableStateOf(false) }
+
         AlertDialog(
             onDismissRequest = { viewModel.dismissIdentityDialog() },
             title = {
@@ -139,21 +142,42 @@ fun ParcelDeliveryScreen(
                 )
             },
             text = {
-                Text(
-                    text = "${uiState.selectedRyosei?.room ?: ""} ${uiState.selectedRyosei?.name ?: ""} さん本人ですか？",
-                    fontSize = 18.sp
-                )
+                Column {
+                    Text(
+                        text = "荷物を引き渡す前に本人確認を行ってください。",
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { identityChecked = !identityChecked }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Checkbox(
+                            checked = identityChecked,
+                            onCheckedChange = { identityChecked = it }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "身分証明書、学生証、橙食券を確認した。",
+                            fontSize = 16.sp
+                        )
+                    }
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         viewModel.confirmIdentity()
                     },
+                    enabled = identityChecked,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ReleaseTheme
                     )
                 ) {
-                    Text("はい", fontSize = 18.sp, color = ReleaseHeaderFont)
+                    Text("次へ", fontSize = 18.sp, color = ReleaseHeaderFont)
                 }
             },
             dismissButton = {
@@ -410,16 +434,37 @@ private fun DeliveryDialog(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
-                            Text(
-                                text = formatParcelType(parcel.parcelType),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = formatParcelType(parcel.parcelType),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                if (parcel.isLost) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "紛失",
+                                        fontSize = 12.sp,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier
+                                            .background(Color.Red, shape = MaterialTheme.shapes.small)
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
                             Text(
                                 text = formatDateTime(parcel.createdAt),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            if (!parcel.registeredByName.isNullOrBlank()) {
+                                Text(
+                                    text = "受取事務当: ${parcel.registeredByName}",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             if (!parcel.note.isNullOrBlank()) {
                                 Text(
                                     text = parcel.note,
@@ -435,35 +480,31 @@ private fun DeliveryDialog(
         },
         confirmButton = {
             val canConfirm = selectedIds.isNotEmpty() && !isDelivering
-            Box(
-                modifier = Modifier
-                    .then(
-                        if (canConfirm) {
-                            Modifier.debounceClickable(1000L) { onConfirm() }
-                        } else {
-                            Modifier
-                        }
-                    )
-            ) {
-                Button(
-                    onClick = {},
-                    enabled = canConfirm,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE9EBF5) // 旧UI: data1D
-                    )
-                ) {
-                    if (isDelivering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(
-                            text = "引き渡し",
-                            fontSize = 20.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+            var lastClickTime by remember { mutableStateOf(0L) }
+            Button(
+                onClick = {
+                    val now = System.currentTimeMillis()
+                    if (now - lastClickTime >= 1000L) {
+                        lastClickTime = now
+                        onConfirm()
                     }
+                },
+                enabled = canConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE9EBF5) // 旧UI: data1D
+                )
+            ) {
+                if (isDelivering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "引き渡し",
+                        fontSize = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         },

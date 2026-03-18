@@ -85,6 +85,13 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
     fun getLostParcels(): Flow<List<ParcelEntity>> =
         parcelDao.getLostParcels()
 
+    suspend fun archiveLostParcels(parcelIds: List<String>) {
+        parcelDao.archiveLostParcels(parcelIds, System.currentTimeMillis())
+    }
+
+    fun getArchivedLostParcels(): Flow<List<ParcelEntity>> =
+        parcelDao.getArchivedLostParcels()
+
     suspend fun getUnsyncedParcels(olderThan: Long): List<ParcelEntity> =
         parcelDao.getUnsyncedParcels(olderThan)
 

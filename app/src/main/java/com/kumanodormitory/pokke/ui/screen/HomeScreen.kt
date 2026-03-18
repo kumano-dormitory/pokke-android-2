@@ -530,7 +530,7 @@ private fun LogRow(
     val dutyDisplay = log.operatedByName ?: ""
 
     val displayText = if (ownerDisplay != null) {
-        "$ownerDisplay ($dutyDisplay)"
+        "$ownerDisplay (事務当番:$dutyDisplay)"
     } else {
         dutyDisplay
     }

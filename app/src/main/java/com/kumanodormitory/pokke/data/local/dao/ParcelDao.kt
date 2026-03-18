@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ParcelDao {
 
-    @Query("SELECT * FROM parcels WHERE status = 'REGISTERED' ORDER BY created_at DESC")
+    @Query("SELECT * FROM parcels WHERE status = 'REGISTERED' AND lost_confirmed_at IS NULL ORDER BY created_at DESC")
     fun getRegistered(): Flow<List<ParcelEntity>>
 
-    @Query("SELECT * FROM parcels WHERE status = 'REGISTERED' AND owner_block LIKE :building || '%' ORDER BY created_at DESC")
+    @Query("SELECT * FROM parcels WHERE status = 'REGISTERED' AND lost_confirmed_at IS NULL AND owner_block LIKE :building || '%' ORDER BY created_at DESC")
     fun getRegisteredByBuilding(building: String): Flow<List<ParcelEntity>>
 
-    @Query("SELECT * FROM parcels WHERE ryosei_id = :ryoseiId AND status = 'REGISTERED' ORDER BY created_at DESC")
+    @Query("SELECT * FROM parcels WHERE ryosei_id = :ryoseiId AND status = 'REGISTERED' AND lost_confirmed_at IS NULL ORDER BY created_at DESC")
     fun getRegisteredByRyosei(ryoseiId: String): Flow<List<ParcelEntity>>
 
     @Query("SELECT * FROM parcels ORDER BY created_at DESC")
@@ -53,8 +53,14 @@ interface ParcelDao {
     )
     fun getByDateRangeAndBuilding(fromMillis: Long, toMillis: Long, building: String): Flow<List<ParcelEntity>>
 
-    @Query("SELECT * FROM parcels WHERE is_lost = 1 ORDER BY created_at DESC")
+    @Query("SELECT * FROM parcels WHERE is_lost = 1 AND lost_confirmed_at IS NULL ORDER BY created_at DESC")
     fun getLostParcels(): Flow<List<ParcelEntity>>
+
+    @Query("UPDATE parcels SET lost_confirmed_at = :confirmedAt, updated_at = :confirmedAt WHERE id IN (:parcelIds)")
+    suspend fun archiveLostParcels(parcelIds: List<String>, confirmedAt: Long)
+
+    @Query("SELECT * FROM parcels WHERE is_lost = 1 AND lost_confirmed_at IS NOT NULL ORDER BY lost_confirmed_at DESC")
+    fun getArchivedLostParcels(): Flow<List<ParcelEntity>>
 
     @Query("UPDATE parcels SET last_confirmed_at = :confirmedAt WHERE id IN (:parcelIds)")
     suspend fun updateLastConfirmedAt(parcelIds: List<String>, confirmedAt: Long)

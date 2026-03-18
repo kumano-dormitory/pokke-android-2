@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -103,6 +104,8 @@ fun AdminScreen(
                 onSyncClick = { viewModel.manualSync() },
                 onHealthCheck = { viewModel.checkHealth() },
                 onConfirmLost = { viewModel.confirmLost(it) },
+                onArchiveLost = { viewModel.archiveLostParcels() },
+                onToggleArchived = { viewModel.toggleShowArchived() },
                 onGenerateSeed = { viewModel.generateSeedData() },
                 onDeleteSeed = { viewModel.deleteSeedData() },
                 modifier = Modifier.padding(innerPadding)
@@ -173,6 +176,8 @@ private fun AdminMenuContent(
     onSyncClick: () -> Unit,
     onHealthCheck: () -> Unit,
     onConfirmLost: (String) -> Unit,
+    onArchiveLost: () -> Unit,
+    onToggleArchived: () -> Unit,
     onGenerateSeed: () -> Unit,
     onDeleteSeed: () -> Unit,
     modifier: Modifier = Modifier
@@ -310,27 +315,115 @@ private fun AdminMenuContent(
                 .weight(1f)
                 .padding(vertical = 16.dp)
         ) {
-            Text(
-                text = "紛失荷物管理",
-                style = MaterialTheme.typography.titleMedium
-            )
+            // タブ切り替え: 紛失荷物 / アーカイブ済み
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = { if (uiState.showArchived) onToggleArchived() }
+                ) {
+                    Text(
+                        text = "紛失荷物（${uiState.lostParcels.size}）",
+                        fontWeight = if (!uiState.showArchived) FontWeight.Bold else FontWeight.Normal,
+                        color = if (!uiState.showArchived) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                TextButton(
+                    onClick = { if (!uiState.showArchived) onToggleArchived() }
+                ) {
+                    Text(
+                        text = "アーカイブ済（${uiState.archivedParcels.size}）",
+                        fontWeight = if (uiState.showArchived) FontWeight.Bold else FontWeight.Normal,
+                        color = if (uiState.showArchived) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (uiState.lostParcels.isEmpty()) {
-                Text(
-                    text = "紛失フラグのついた荷物はありません",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(uiState.lostParcels, key = { it.id }) { parcel ->
-                        LostParcelItem(
-                            parcel = parcel,
-                            onConfirmLost = onConfirmLost
+            if (!uiState.showArchived) {
+                // 紛失荷物一覧
+                if (uiState.lostParcels.isEmpty()) {
+                    Text(
+                        text = "紛失フラグのついた荷物はありません",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    var showArchiveDialog by remember { mutableStateOf(false) }
+
+                    Button(
+                        onClick = { showArchiveDialog = true },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF666666)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "一括アーカイブ（${uiState.lostParcels.size}件）",
+                            color = Color.White
                         )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.lostParcels, key = { it.id }) { parcel ->
+                            LostParcelItem(
+                                parcel = parcel,
+                                onConfirmLost = onConfirmLost
+                            )
+                        }
+                    }
+
+                    if (showArchiveDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showArchiveDialog = false },
+                            title = { Text("紛失荷物アーカイブ") },
+                            text = {
+                                Text(
+                                    "紛失フラグのついた荷物${uiState.lostParcels.size}件をすべてアーカイブします。\n" +
+                                            "アーカイブ後は一覧に表示されなくなります。"
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        onArchiveLost()
+                                        showArchiveDialog = false
+                                    }
+                                ) {
+                                    Text("アーカイブ", color = MaterialTheme.colorScheme.error)
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showArchiveDialog = false }) {
+                                    Text("キャンセル")
+                                }
+                            }
+                        )
+                    }
+                }
+            } else {
+                // アーカイブ済み一覧
+                if (uiState.archivedParcels.isEmpty()) {
+                    Text(
+                        text = "アーカイブ済みの荷物はありません",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.archivedParcels, key = { it.id }) { parcel ->
+                            ArchivedParcelItem(parcel = parcel)
+                        }
                     }
                 }
             }
@@ -413,5 +506,43 @@ private fun LostParcelItem(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ArchivedParcelItem(parcel: ParcelEntity) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "${parcel.ownerRoomName} ${parcel.ownerName}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                text = "種別: ${formatParcelType(parcel.parcelType)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "登録: ${formatDateTime(parcel.createdAt)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            parcel.lostConfirmedAt?.let {
+                Text(
+                    text = "アーカイブ: ${formatDateTime(it)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

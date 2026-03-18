@@ -17,6 +17,8 @@ import kotlinx.coroutines.launch
 data class AdminUiState(
     val isAuthenticated: Boolean = false,
     val lostParcels: List<ParcelEntity> = emptyList(),
+    val archivedParcels: List<ParcelEntity> = emptyList(),
+    val showArchived: Boolean = false,
     val passwordError: String? = null,
     val isLoading: Boolean = false,
     val snackbarMessage: String? = null,
@@ -67,6 +69,17 @@ class AdminViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
         }
+        viewModelScope.launch {
+            try {
+                parcelRepository.getArchivedLostParcels().collect { parcels ->
+                    _uiState.value = _uiState.value.copy(archivedParcels = parcels)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun toggleShowArchived() {
+        _uiState.value = _uiState.value.copy(showArchived = !_uiState.value.showArchived)
     }
 
     fun confirmLost(parcelId: String) {
@@ -82,6 +95,29 @@ class AdminViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     snackbarMessage = "紛失確定に失敗しました: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun archiveLostParcels() {
+        viewModelScope.launch {
+            try {
+                val ids = _uiState.value.lostParcels.map { it.id }
+                if (ids.isEmpty()) return@launch
+                parcelRepository.archiveLostParcels(ids)
+                operationLogRepository.addLog(
+                    type = "ARCHIVE_LOST",
+                    parcelId = null,
+                    operatedByName = null,
+                    metadata = "${ids.size}件アーカイブ"
+                )
+                _uiState.value = _uiState.value.copy(
+                    snackbarMessage = "${ids.size}件の紛失荷物をアーカイブしました"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    snackbarMessage = "アーカイブに失敗しました: ${e.message}"
                 )
             }
         }
