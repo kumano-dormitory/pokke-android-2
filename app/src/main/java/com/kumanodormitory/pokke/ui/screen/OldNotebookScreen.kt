@@ -9,14 +9,15 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -42,16 +43,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
+import com.kumanodormitory.pokke.ui.util.SoundManager
 import com.kumanodormitory.pokke.ui.util.formatDateTime
 import com.kumanodormitory.pokke.ui.util.formatParcelType
 import com.kumanodormitory.pokke.ui.viewmodel.OldNotebookViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -97,77 +101,126 @@ fun OldNotebookScreen(
         "臨キャパ" to "臨キャパ"
     )
 
+    val context = LocalContext.current
+
     Scaffold(
         topBar = {
-            // 旧アプリ準拠: ヘッダー（oldnote_theme背景 + 黒文字）
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "履歴一覧表示の画面です。",
-                            fontSize = 24.sp,
-                            color = Color.Black
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        // ブロック選択（旧: Spinner）
-                        Text(text = "ブロック:", fontSize = 20.sp, color = Color.Black)
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Box {
-                            OutlinedButton(onClick = { showBlockDropdown = true }) {
-                                Text(
-                                    text = blockOptions.find { it.first == selectedBlock }?.second ?: "全体",
-                                    fontSize = 18.sp
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showBlockDropdown,
-                                onDismissRequest = { showBlockDropdown = false }
-                            ) {
-                                blockOptions.forEach { (value, label) ->
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            viewModel.setBlock(value)
-                                            showBlockDropdown = false
-                                        }
+                    Column {
+                        // 1段目: タイトル + ブロック選択
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "荷物履歴一覧",
+                                fontSize = 22.sp,
+                                color = Color.Black,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Text(text = "ブロック:", fontSize = 16.sp, color = Color.Black)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Box {
+                                OutlinedButton(onClick = { showBlockDropdown = true }) {
+                                    Text(
+                                        text = blockOptions.find { it.first == selectedBlock }?.second ?: "全体",
+                                        fontSize = 16.sp
                                     )
+                                }
+                                DropdownMenu(
+                                    expanded = showBlockDropdown,
+                                    onDismissRequest = { showBlockDropdown = false }
+                                ) {
+                                    blockOptions.forEach { (value, label) ->
+                                        DropdownMenuItem(
+                                            text = { Text(label) },
+                                            onClick = {
+                                                viewModel.setBlock(value)
+                                                showBlockDropdown = false
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.width(30.dp))
-                        // 日付範囲表示（旧: From ~ To 縦並び）
-                        Column {
-                            Text(
-                                text = dateFormat.format(Date(startDate)),
-                                fontSize = 20.sp,
-                                color = Color.Black
-                            )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // 2段目: 日付選択ボタン + プリセット + 検索
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // 開始日ボタン
+                            OutlinedButton(onClick = { showStartDatePicker = true }) {
+                                Text(
+                                    text = dateFormat.format(Date(startDate)),
+                                    fontSize = 14.sp
+                                )
+                            }
                             Text(
                                 text = " ～ ",
-                                fontSize = 12.sp,
-                                color = Color.Black,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
-                            )
-                            Text(
-                                text = dateFormat.format(Date(endDate)),
-                                fontSize = 20.sp,
+                                fontSize = 14.sp,
                                 color = Color.Black
                             )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        // カレンダーボタン（旧: ImageButton datebutton）
-                        IconButton(onClick = { showStartDatePicker = true }) {
-                            Icon(
-                                Icons.Default.DateRange,
-                                contentDescription = "日付選択",
-                                tint = Color.Black
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(30.dp))
-                        // 検索ボタン（旧: search_show_button）
-                        Button(onClick = { viewModel.loadParcels() }) {
-                            Text("検索", fontSize = 16.sp)
+                            // 終了日ボタン
+                            OutlinedButton(onClick = { showEndDatePicker = true }) {
+                                Text(
+                                    text = dateFormat.format(Date(endDate)),
+                                    fontSize = 14.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            // プリセットボタン
+                            val presetButtonColors = ButtonDefaults.outlinedButtonColors()
+                            OutlinedButton(
+                                onClick = {
+                                    SoundManager.playSearch(context)
+                                    val today = todayRange(0)
+                                    viewModel.setStartDate(today.first)
+                                    viewModel.setEndDate(today.second)
+                                    viewModel.loadParcels()
+                                }
+                            ) {
+                                Text("今日", fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    SoundManager.playSearch(context)
+                                    val range = todayRange(3)
+                                    viewModel.setStartDate(range.first)
+                                    viewModel.setEndDate(range.second)
+                                    viewModel.loadParcels()
+                                }
+                            ) {
+                                Text("3日間", fontSize = 12.sp)
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    SoundManager.playSearch(context)
+                                    val range = todayRange(7)
+                                    viewModel.setStartDate(range.first)
+                                    viewModel.setEndDate(range.second)
+                                    viewModel.loadParcels()
+                                }
+                            ) {
+                                Text("1週間", fontSize = 12.sp)
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Button(onClick = {
+                                SoundManager.playSearch(context)
+                                viewModel.loadParcels()
+                            }) {
+                                Text("検索", fontSize = 14.sp)
+                            }
                         }
                     }
                 },
@@ -224,7 +277,7 @@ fun OldNotebookScreen(
         }
     }
 
-    // 開始日DatePicker
+    // 開始日DatePicker（独立選択）
     if (showStartDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = startDate)
         DatePickerDialog(
@@ -233,8 +286,7 @@ fun OldNotebookScreen(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { viewModel.setStartDate(it) }
                     showStartDatePicker = false
-                    showEndDatePicker = true // 旧アプリ準拠: 範囲選択のため終了日も選択
-                }) { Text("OK → 終了日選択") }
+                }) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = { showStartDatePicker = false }) { Text("キャンセル") }
@@ -244,7 +296,7 @@ fun OldNotebookScreen(
         }
     }
 
-    // 終了日DatePicker
+    // 終了日DatePicker（独立選択）
     if (showEndDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDate)
         DatePickerDialog(
@@ -262,6 +314,31 @@ fun OldNotebookScreen(
             DatePicker(state = datePickerState)
         }
     }
+}
+
+/**
+ * プリセット日付範囲を計算する。
+ * @param daysBack 0=今日のみ, 3=3日前～今日, 7=1週間前～今日
+ * @return Pair(startMillis, endMillis) startは0:00, endは23:59:59.999
+ */
+private fun todayRange(daysBack: Int): Pair<Long, Long> {
+    val cal = Calendar.getInstance()
+    // 今日の23:59:59.999
+    cal.set(Calendar.HOUR_OF_DAY, 23)
+    cal.set(Calendar.MINUTE, 59)
+    cal.set(Calendar.SECOND, 59)
+    cal.set(Calendar.MILLISECOND, 999)
+    val endMillis = cal.timeInMillis
+
+    // daysBack日前の0:00
+    cal.add(Calendar.DAY_OF_YEAR, -daysBack)
+    cal.set(Calendar.HOUR_OF_DAY, 0)
+    cal.set(Calendar.MINUTE, 0)
+    cal.set(Calendar.SECOND, 0)
+    cal.set(Calendar.MILLISECOND, 0)
+    val startMillis = cal.timeInMillis
+
+    return startMillis to endMillis
 }
 
 @Composable
