@@ -2,6 +2,7 @@ package com.kumanodormitory.pokke.data.repository
 
 import com.kumanodormitory.pokke.data.local.dao.OperationLogDao
 import com.kumanodormitory.pokke.data.local.entity.OperationLogEntity
+import com.kumanodormitory.pokke.data.local.entity.OperationLogWithParcel
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
@@ -9,6 +10,9 @@ class OperationLogRepository(private val operationLogDao: OperationLogDao) {
 
     fun getRecentLogs(limit: Int = 50): Flow<List<OperationLogEntity>> =
         operationLogDao.getRecent()
+
+    fun getRecentLogsWithParcel(): Flow<List<OperationLogWithParcel>> =
+        operationLogDao.getRecentWithParcel()
 
     suspend fun addLog(
         type: String,

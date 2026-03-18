@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kumanodormitory.pokke.data.local.entity.DutyPersonEntity
 import com.kumanodormitory.pokke.data.local.entity.OperationLogEntity
+import com.kumanodormitory.pokke.data.local.entity.OperationLogWithParcel
 import com.kumanodormitory.pokke.data.repository.DutyPersonRepository
 import com.kumanodormitory.pokke.data.repository.OperationLogRepository
 import com.kumanodormitory.pokke.data.repository.ParcelRepository
@@ -15,7 +16,7 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val currentDutyPersonName: String = "",
-    val recentLogs: List<OperationLogEntity> = emptyList(),
+    val recentLogs: List<OperationLogWithParcel> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
@@ -40,8 +41,8 @@ class HomeViewModel(
         viewModelScope.launch {
             combine(
                 dutyPersonRepository.getCurrentDutyPerson(),
-                operationLogRepository.getRecentLogs(50)
-            ) { dutyPerson: DutyPersonEntity?, logs: List<OperationLogEntity> ->
+                operationLogRepository.getRecentLogsWithParcel()
+            ) { dutyPerson: DutyPersonEntity?, logs: List<OperationLogWithParcel> ->
                 HomeUiState(
                     currentDutyPersonName = dutyPerson?.name ?: "",
                     recentLogs = logs,
@@ -54,14 +55,15 @@ class HomeViewModel(
         }
     }
 
-    fun isCancellable(log: OperationLogEntity): Boolean {
+    fun isCancellable(logWithParcel: OperationLogWithParcel): Boolean {
+        val log = logWithParcel.log
         val isCancellableType = log.operationType == "REGISTER" || log.operationType == "DELIVER"
         val withinTimeLimit = System.currentTimeMillis() - log.createdAt < 10 * 60 * 1000
         return isCancellableType && withinTimeLimit
     }
 
-    fun requestCancel(log: OperationLogEntity) {
-        _showCancelDialog.value = log
+    fun requestCancel(logWithParcel: OperationLogWithParcel) {
+        _showCancelDialog.value = logWithParcel.log
     }
 
     fun dismissCancelDialog() {

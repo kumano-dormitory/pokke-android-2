@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.R
 import com.kumanodormitory.pokke.data.local.entity.OperationLogEntity
+import com.kumanodormitory.pokke.data.local.entity.OperationLogWithParcel
 import com.kumanodormitory.pokke.ui.util.SoundManager
 import com.kumanodormitory.pokke.ui.util.debounceClickable
 import com.kumanodormitory.pokke.ui.viewmodel.HomeViewModel
@@ -109,7 +110,7 @@ fun HomeScreen(
 
                 // 右側: 履歴
                 RightLogPanel(
-                    logs = uiState.recentLogs,
+                    logsWithParcel = uiState.recentLogs,
                     isCancellable = { viewModel.isCancellable(it) },
                     onCancelRequest = { viewModel.requestCancel(it) },
                     modifier = Modifier
@@ -433,9 +434,9 @@ private fun SubActionButton(
 // ===== 右側ログパネル =====
 @Composable
 private fun RightLogPanel(
-    logs: List<OperationLogEntity>,
-    isCancellable: (OperationLogEntity) -> Boolean,
-    onCancelRequest: (OperationLogEntity) -> Unit,
+    logsWithParcel: List<OperationLogWithParcel>,
+    isCancellable: (OperationLogWithParcel) -> Boolean,
+    onCancelRequest: (OperationLogWithParcel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
@@ -465,7 +466,7 @@ private fun RightLogPanel(
                 .clip(RoundedCornerShape(4.dp))
                 .background(LogBackgroundColor)
         ) {
-            if (logs.isEmpty()) {
+            if (logsWithParcel.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -482,11 +483,11 @@ private fun RightLogPanel(
                         .fillMaxSize()
                         .padding(4.dp)
                 ) {
-                    items(logs, key = { it.id }) { log ->
+                    items(logsWithParcel, key = { it.log.id }) { logWithParcel ->
                         LogRow(
-                            log = log,
-                            isCancellable = isCancellable(log),
-                            onCancelRequest = { onCancelRequest(log) }
+                            logWithParcel = logWithParcel,
+                            isCancellable = isCancellable(logWithParcel),
+                            onCancelRequest = { onCancelRequest(logWithParcel) }
                         )
                         HorizontalDivider(
                             color = Color(0xFFDDDDDD),
@@ -499,14 +500,14 @@ private fun RightLogPanel(
     }
 }
 
-// ===== ログ行（旧アプリの表示形式を再現） =====
+// ===== ログ行（荷物の持ち主を表示、事務当番はかっこ） =====
 @Composable
 private fun LogRow(
-    log: OperationLogEntity,
+    logWithParcel: OperationLogWithParcel,
     isCancellable: Boolean,
     onCancelRequest: () -> Unit
 ) {
-    // 旧アプリ形式: "MM/dd HH:mm   受け取り   A301    山田太郎"
+    val log = logWithParcel.log
     val typeLabel = when (log.operationType) {
         "REGISTER" -> "受け取り"
         "DELIVER" -> "引き渡し"
@@ -518,6 +519,21 @@ private fun LogRow(
 
     val sdf = SimpleDateFormat("MM/dd HH:mm", Locale.getDefault())
     val dateStr = sdf.format(Date(log.createdAt))
+
+    // 荷物関連操作: 持ち主(部屋番号+名前) + 事務当番(かっこ)
+    // 当番交代等: 事務当番名のみ
+    val ownerDisplay = if (logWithParcel.parcelOwnerRoom != null && logWithParcel.parcelOwnerName != null) {
+        "${logWithParcel.parcelOwnerRoom} ${logWithParcel.parcelOwnerName}"
+    } else {
+        null
+    }
+    val dutyDisplay = log.operatedByName ?: ""
+
+    val displayText = if (ownerDisplay != null) {
+        "$ownerDisplay ($dutyDisplay)"
+    } else {
+        dutyDisplay
+    }
 
     Row(
         modifier = Modifier
@@ -539,7 +555,7 @@ private fun LogRow(
         )
 
         Text(
-            text = log.operatedByName ?: "",
+            text = displayText,
             fontSize = 16.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

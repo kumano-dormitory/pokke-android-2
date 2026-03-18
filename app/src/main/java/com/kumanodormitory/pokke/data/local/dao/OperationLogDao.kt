@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import com.kumanodormitory.pokke.data.local.entity.OperationLogEntity
+import com.kumanodormitory.pokke.data.local.entity.OperationLogWithParcel
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -11,6 +12,16 @@ interface OperationLogDao {
 
     @Query("SELECT * FROM operation_logs ORDER BY created_at DESC LIMIT 50")
     fun getRecent(): Flow<List<OperationLogEntity>>
+
+    @Query(
+        """
+        SELECT ol.*, p.owner_room_name AS parcel_owner_room, p.owner_name AS parcel_owner_name
+        FROM operation_logs ol
+        LEFT JOIN parcels p ON ol.parcel_id = p.id
+        ORDER BY ol.created_at DESC LIMIT 50
+        """
+    )
+    fun getRecentWithParcel(): Flow<List<OperationLogWithParcel>>
 
     @Query(
         """
