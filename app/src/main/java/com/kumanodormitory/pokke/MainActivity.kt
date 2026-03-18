@@ -80,15 +80,24 @@ class MainActivity : ComponentActivity() {
             syncRequest
         )
 
-        // 起動時の寮生差分同期（バックグラウンド）
+        // 起動時の寮生同期（バックグラウンド）
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val prefs = getSharedPreferences("pokke_sync", MODE_PRIVATE)
-                val lastSync = prefs.getString("lastRyoseiSyncAt", null)
-                val response = PokkeApiClient.service.getRyosei(updatedAfter = lastSync)
+                val deviceId = prefs.getString("deviceId", null) ?: run {
+                    val id = "pokke-${android.os.Build.MODEL}-${System.currentTimeMillis()}"
+                    prefs.edit().putString("deviceId", id).apply()
+                    id
+                }
+                val request = com.kumanodormitory.pokke.data.remote.dto.SyncPullRequest(
+                    deviceId = deviceId,
+                    parcels = com.kumanodormitory.pokke.data.remote.dto.SyncPullParcelRequest(mode = "SNAPSHOT"),
+                    ryosei = com.kumanodormitory.pokke.data.remote.dto.SyncPullRyoseiRequest(mode = "SNAPSHOT")
+                )
+                val response = PokkeApiClient.service.syncPull(body = request)
                 if (response.isSuccessful) {
                     val body = response.body() ?: return@launch
-                    val entities = body.ryosei.map { dto ->
+                    val entities = body.ryosei.items.map { dto ->
                         RyoseiEntity(
                             id = dto.id, name = dto.name, nameKana = dto.nameKana,
                             nameAlphabet = dto.nameAlphabet, room = dto.room,
@@ -98,7 +107,7 @@ class MainActivity : ComponentActivity() {
                     }
                     ryoseiRepository.insertAll(entities)
                     prefs.edit()
-                        .putString("lastRyoseiSyncAt", System.currentTimeMillis().toString())
+                        .putLong("lastRyoseiSyncAt", System.currentTimeMillis())
                         .apply()
                 }
             } catch (_: Exception) {

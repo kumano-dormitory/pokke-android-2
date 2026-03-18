@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
 import com.kumanodormitory.pokke.data.remote.PokkeApiClient
-import com.kumanodormitory.pokke.data.remote.dto.CallRequest
+import com.kumanodormitory.pokke.data.remote.dto.CallNotifyRequest
 import com.kumanodormitory.pokke.data.repository.RyoseiRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -107,9 +107,16 @@ class CallViewModel(
             _uiState.value = _uiState.value.copy(isSending = true)
 
             try {
-                val response = PokkeApiClient.service.callRyosei(
-                    ryoseiId = ryosei.id,
-                    body = CallRequest(type = callType)
+                val reason = when (callType) {
+                    "荷物受け取り" -> "PARCEL_PICKUP"
+                    "呼び出し" -> "CALL"
+                    else -> "GENERAL"
+                }
+                val response = PokkeApiClient.service.callNotify(
+                    body = CallNotifyRequest(
+                        ryoseiId = ryosei.id,
+                        reason = reason
+                    )
                 )
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
@@ -119,11 +126,15 @@ class CallViewModel(
                         snackbarMessage = "${ryosei.name}さんに呼び出しを送信しました"
                     )
                 } else {
+                    val errorMsg = when (response.code()) {
+                        422 -> "Discord未連携のため送信できません"
+                        else -> "送信に失敗しました: HTTP ${response.code()}"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isSending = false,
                         showCallTypeDialog = false,
                         selectedRyosei = null,
-                        snackbarMessage = "送信に失敗しました: HTTP ${response.code()}"
+                        snackbarMessage = errorMsg
                     )
                 }
             } catch (e: Exception) {

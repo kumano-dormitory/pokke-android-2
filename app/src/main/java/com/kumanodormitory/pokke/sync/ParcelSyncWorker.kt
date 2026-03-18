@@ -6,7 +6,8 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.kumanodormitory.pokke.data.local.PokkeDatabase
 import com.kumanodormitory.pokke.data.remote.PokkeApiClient
-import com.kumanodormitory.pokke.data.remote.dto.ParcelSyncRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushParcelRequest
 import java.io.IOException
 
 class ParcelSyncWorker(
@@ -29,15 +30,24 @@ class ParcelSyncWorker(
 
             Log.d(TAG, "Syncing ${unsyncedParcels.size} parcels")
 
+            val prefs = applicationContext.getSharedPreferences("pokke_sync", Context.MODE_PRIVATE)
+            val deviceId = prefs.getString("deviceId", null) ?: run {
+                val id = "pokke-${android.os.Build.MODEL}-${System.currentTimeMillis()}"
+                prefs.edit().putString("deviceId", id).apply()
+                id
+            }
             val dtos = unsyncedParcels.map { it.toSyncDto() }
-            val response = PokkeApiClient.service.syncParcels(ParcelSyncRequest(parcels = dtos))
+            val request = SyncPushRequest(
+                deviceId = deviceId,
+                generatedAt = System.currentTimeMillis(),
+                parcels = SyncPushParcelRequest(items = dtos)
+            )
+            val response = PokkeApiClient.service.syncPush(body = request)
 
             if (response.isSuccessful) {
-                val syncedIds = response.body()?.syncedIds ?: unsyncedParcels.map { it.id }
-                if (syncedIds.isNotEmpty()) {
-                    parcelDao.updateSyncedAt(syncedIds, System.currentTimeMillis())
-                }
-                Log.d(TAG, "Successfully synced ${syncedIds.size} parcels")
+                val acceptedCount = response.body()?.accepted?.parcels ?: unsyncedParcels.size
+                parcelDao.updateSyncedAt(unsyncedParcels.map { it.id }, System.currentTimeMillis())
+                Log.d(TAG, "Successfully synced $acceptedCount parcels")
                 Result.success()
             } else {
                 Log.w(TAG, "Sync failed with code ${response.code()}")

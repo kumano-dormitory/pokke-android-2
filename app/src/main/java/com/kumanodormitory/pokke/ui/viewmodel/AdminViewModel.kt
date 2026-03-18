@@ -7,7 +7,11 @@ import android.content.SharedPreferences
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
 import com.kumanodormitory.pokke.data.remote.PokkeApiClient
-import com.kumanodormitory.pokke.data.remote.dto.ParcelSyncRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPullRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPullParcelRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPullRyoseiRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushParcelRequest
 import com.kumanodormitory.pokke.data.repository.OperationLogRepository
 import com.kumanodormitory.pokke.data.repository.ParcelRepository
 import com.kumanodormitory.pokke.data.repository.RyoseiRepository
@@ -174,11 +178,21 @@ class AdminViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSyncingRyosei = true, snackbarMessage = null)
             try {
-                val response = PokkeApiClient.service.getRyosei()
+                val deviceId = syncPrefs.getString("deviceId", null) ?: run {
+                    val id = "pokke-${android.os.Build.MODEL}-${System.currentTimeMillis()}"
+                    syncPrefs.edit().putString("deviceId", id).apply()
+                    id
+                }
+                val request = SyncPullRequest(
+                    deviceId = deviceId,
+                    parcels = SyncPullParcelRequest(mode = "SNAPSHOT"),
+                    ryosei = SyncPullRyoseiRequest(mode = "SNAPSHOT")
+                )
+                val response = PokkeApiClient.service.syncPull(body = request)
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null) {
-                        val entities = body.ryosei.map { dto ->
+                        val entities = body.ryosei.items.map { dto ->
                             RyoseiEntity(
                                 id = dto.id, name = dto.name, nameKana = dto.nameKana,
                                 nameAlphabet = dto.nameAlphabet, room = dto.room,
@@ -223,19 +237,27 @@ class AdminViewModel(
                     return@launch
                 }
 
+                val deviceId = syncPrefs.getString("deviceId", null) ?: run {
+                    val id = "pokke-${android.os.Build.MODEL}-${System.currentTimeMillis()}"
+                    syncPrefs.edit().putString("deviceId", id).apply()
+                    id
+                }
                 val dtos = unsyncedParcels.map { it.toSyncDto() }
-                val response = PokkeApiClient.service.syncParcels(ParcelSyncRequest(parcels = dtos))
+                val request = SyncPushRequest(
+                    deviceId = deviceId,
+                    generatedAt = System.currentTimeMillis(),
+                    parcels = SyncPushParcelRequest(items = dtos)
+                )
+                val response = PokkeApiClient.service.syncPush(body = request)
                 if (response.isSuccessful) {
-                    val syncedIds = response.body()?.syncedIds ?: unsyncedParcels.map { it.id }
-                    if (syncedIds.isNotEmpty()) {
-                        parcelRepository.updateSyncedAt(syncedIds)
-                    }
+                    val acceptedCount = response.body()?.accepted?.parcels ?: unsyncedParcels.size
+                    parcelRepository.updateSyncedAt(unsyncedParcels.map { it.id })
                     val now = System.currentTimeMillis()
                     syncPrefs.edit().putLong("lastParcelSyncAt", now).apply()
                     _uiState.value = _uiState.value.copy(
                         isSyncingParcel = false,
                         lastParcelSyncAt = now,
-                        snackbarMessage = "荷物データを${syncedIds.size}件同期しました"
+                        snackbarMessage = "荷物データを${acceptedCount}件同期しました"
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(

@@ -3,9 +3,6 @@ package com.kumanodormitory.pokke.data.remote.dto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RyoseiListResponse(val ryosei: List<RyoseiDto>)
-
-@Serializable
 data class RyoseiDto(
     val id: String,
     val name: String,

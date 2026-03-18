@@ -1,34 +1,33 @@
 package com.kumanodormitory.pokke.data.remote
 
-import com.kumanodormitory.pokke.data.remote.dto.CallRequest
-import com.kumanodormitory.pokke.data.remote.dto.ParcelSyncRequest
-import com.kumanodormitory.pokke.data.remote.dto.ParcelSyncResponse
-import com.kumanodormitory.pokke.data.remote.dto.RyoseiListResponse
+import com.kumanodormitory.pokke.data.remote.dto.CallNotifyRequest
+import com.kumanodormitory.pokke.data.remote.dto.CallNotifyResponse
+import com.kumanodormitory.pokke.data.remote.dto.SyncPullRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPullResponse
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushRequest
+import com.kumanodormitory.pokke.data.remote.dto.SyncPushResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
-import retrofit2.http.Query
 
 interface PokkeApiService {
 
-    @POST("api/ryosei/{id}/call")
-    suspend fun callRyosei(
-        @Path("id") ryoseiId: String,
-        @Body body: CallRequest
-    ): Response<Unit>
+    @POST("api/v1/sync/pull")
+    suspend fun syncPull(
+        @Body body: SyncPullRequest
+    ): Response<SyncPullResponse>
 
-    @POST("api/parcels/sync")
-    suspend fun syncParcels(
-        @Body body: ParcelSyncRequest
-    ): Response<ParcelSyncResponse>
+    @POST("api/v1/sync/push")
+    suspend fun syncPush(
+        @Body body: SyncPushRequest
+    ): Response<SyncPushResponse>
 
-    @GET("api/ryosei")
-    suspend fun getRyosei(
-        @Query("updated_after") updatedAfter: String? = null
-    ): Response<RyoseiListResponse>
+    @POST("api/v1/call/notify")
+    suspend fun callNotify(
+        @Body body: CallNotifyRequest
+    ): Response<CallNotifyResponse>
 
-    @GET("api/health")
+    @GET("api/v1/health")
     suspend fun health(): Response<Unit>
 }
