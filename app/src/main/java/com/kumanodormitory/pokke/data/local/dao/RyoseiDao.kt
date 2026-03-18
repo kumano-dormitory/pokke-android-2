@@ -64,4 +64,7 @@ interface RyoseiDao {
 
     @Query("DELETE FROM ryosei WHERE id LIKE 'seed-%'")
     suspend fun deleteSeedData()
+
+    @Query("DELETE FROM ryosei")
+    suspend fun deleteAll()
 }

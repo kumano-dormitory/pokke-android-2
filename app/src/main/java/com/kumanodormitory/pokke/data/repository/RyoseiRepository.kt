@@ -31,4 +31,9 @@ class RyoseiRepository(private val ryoseiDao: RyoseiDao) {
     suspend fun deleteSeedData() {
         ryoseiDao.deleteSeedData()
     }
+
+    suspend fun replaceAll(ryoseiList: List<RyoseiEntity>) {
+        ryoseiDao.deleteAll()
+        ryoseiDao.insertAll(ryoseiList)
+    }
 }

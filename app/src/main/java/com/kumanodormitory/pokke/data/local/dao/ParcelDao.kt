@@ -58,4 +58,18 @@ interface ParcelDao {
 
     @Query("UPDATE parcels SET last_confirmed_at = :confirmedAt WHERE id IN (:parcelIds)")
     suspend fun updateLastConfirmedAt(parcelIds: List<String>, confirmedAt: Long)
+
+    @Query(
+        """
+        SELECT * FROM parcels
+        WHERE synced_at IS NULL
+          AND created_at < :olderThan
+        ORDER BY created_at ASC
+        LIMIT 50
+        """
+    )
+    suspend fun getUnsyncedParcels(olderThan: Long): List<ParcelEntity>
+
+    @Query("UPDATE parcels SET synced_at = :syncedAt WHERE id IN (:ids)")
+    suspend fun updateSyncedAt(ids: List<String>, syncedAt: Long)
 }
