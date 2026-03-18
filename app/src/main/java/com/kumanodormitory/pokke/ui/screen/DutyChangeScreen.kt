@@ -61,8 +61,8 @@ fun DutyChangeScreen(
     LaunchedEffect(uiState) {
         if (uiState is DutyChangeUiState.Success) {
             SoundManager.playDone(context)
-            viewModel.resetUiState()
             onNavigateBack()
+            viewModel.resetUiState()
         }
     }
 
