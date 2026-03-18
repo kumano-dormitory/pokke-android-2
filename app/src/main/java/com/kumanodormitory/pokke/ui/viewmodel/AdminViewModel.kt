@@ -3,6 +3,7 @@ package com.kumanodormitory.pokke.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kumanodormitory.pokke.data.local.SeedData
+import android.content.SharedPreferences
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
 import com.kumanodormitory.pokke.data.remote.PokkeApiClient
@@ -26,7 +27,9 @@ data class AdminUiState(
     val healthStatus: HealthStatus = HealthStatus.UNKNOWN,
     val isCheckingHealth: Boolean = false,
     val isSyncingRyosei: Boolean = false,
-    val isSyncingParcel: Boolean = false
+    val isSyncingParcel: Boolean = false,
+    val lastRyoseiSyncAt: Long? = null,
+    val lastParcelSyncAt: Long? = null
 )
 
 enum class HealthStatus { UNKNOWN, OK, ERROR }
@@ -34,10 +37,14 @@ enum class HealthStatus { UNKNOWN, OK, ERROR }
 class AdminViewModel(
     private val parcelRepository: ParcelRepository,
     private val ryoseiRepository: RyoseiRepository,
-    private val operationLogRepository: OperationLogRepository
+    private val operationLogRepository: OperationLogRepository,
+    private val syncPrefs: SharedPreferences
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AdminUiState())
+    private val _uiState = MutableStateFlow(AdminUiState(
+        lastRyoseiSyncAt = syncPrefs.getLong("lastRyoseiSyncAt", 0L).takeIf { it > 0 },
+        lastParcelSyncAt = syncPrefs.getLong("lastParcelSyncAt", 0L).takeIf { it > 0 }
+    ))
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
     companion object {
@@ -180,8 +187,11 @@ class AdminViewModel(
                             )
                         }
                         ryoseiRepository.replaceAll(entities)
+                        val now = System.currentTimeMillis()
+                        syncPrefs.edit().putLong("lastRyoseiSyncAt", now).apply()
                         _uiState.value = _uiState.value.copy(
                             isSyncingRyosei = false,
+                            lastRyoseiSyncAt = now,
                             snackbarMessage = "寮生データを${entities.size}件同期しました"
                         )
                     }
@@ -220,8 +230,11 @@ class AdminViewModel(
                     if (syncedIds.isNotEmpty()) {
                         parcelRepository.updateSyncedAt(syncedIds)
                     }
+                    val now = System.currentTimeMillis()
+                    syncPrefs.edit().putLong("lastParcelSyncAt", now).apply()
                     _uiState.value = _uiState.value.copy(
                         isSyncingParcel = false,
+                        lastParcelSyncAt = now,
                         snackbarMessage = "荷物データを${syncedIds.size}件同期しました"
                     )
                 } else {

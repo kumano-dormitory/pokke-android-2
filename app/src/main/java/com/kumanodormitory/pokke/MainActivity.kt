@@ -66,7 +66,8 @@ class MainActivity : ComponentActivity() {
         val parcelDeliveryViewModel = ParcelDeliveryViewModel(ryoseiRepository, parcelRepository, dutyPersonRepository, operationLogRepository)
         val nightDutyViewModel = NightDutyViewModel(parcelRepository, operationLogRepository, dutyPersonRepository)
         val oldNotebookViewModel = OldNotebookViewModel(parcelRepository)
-        val adminViewModel = AdminViewModel(parcelRepository, ryoseiRepository, operationLogRepository)
+        val syncPrefs = getSharedPreferences("pokke_sync", MODE_PRIVATE)
+        val adminViewModel = AdminViewModel(parcelRepository, ryoseiRepository, operationLogRepository, syncPrefs)
         val callViewModel = CallViewModel(ryoseiRepository)
 
         // WorkManager: 荷物バッチ同期（15分周期）

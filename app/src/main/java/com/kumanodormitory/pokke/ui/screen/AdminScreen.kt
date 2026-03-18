@@ -285,10 +285,27 @@ private fun AdminMenuContent(
                 text = "同期ステータス",
                 style = MaterialTheme.typography.titleMedium
             )
+
             Text(
-                text = "寮生: サーバーから取得\n荷物: 15分毎に自動同期",
-                style = MaterialTheme.typography.bodyMedium,
-                lineHeight = 22.sp
+                text = "寮生 最終同期:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = if (uiState.lastRyoseiSyncAt != null) formatDateTime(uiState.lastRyoseiSyncAt) else "未実行",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "荷物 最終同期:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = if (uiState.lastParcelSyncAt != null) formatDateTime(uiState.lastParcelSyncAt) else "未実行",
+                style = MaterialTheme.typography.bodyMedium
             )
 
             Spacer(modifier = Modifier.height(16.dp))
