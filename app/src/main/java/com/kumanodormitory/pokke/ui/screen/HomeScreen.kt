@@ -55,9 +55,6 @@ import java.util.Locale
 // 旧アプリの色定義を再現
 private val HeaderColor = Color(0xFF333C5E)
 private val HeaderFontColor = Color.White
-private val RegisterButtonColor = Color(0xFFADD8E6)  // lightblue
-private val ReleaseButtonColor = Color(0xFFDAA186)    // orange
-private val NightDutyColor = Color(0xFF4B0082)        // night_duty_theme
 private val OldNoteColor = Color(0xFFEEEEEE)          // verylightgray
 private val OthersColor = Color(0xFFD3D3D3)            // lightgray
 private val CallColor = Color(0xFF60DEA0)              // jimuto_theme (green)
@@ -235,10 +232,9 @@ private fun LeftButtonPanel(
         Spacer(modifier = Modifier.height(20.dp))
 
         // 荷物の受け取り（大ボタン）
-        MainActionButton(
-            text = "荷物の受け取り",
-            color = RegisterButtonColor,
-            textColor = Color.Black,
+        ImageActionButton(
+            drawableRes = R.drawable.register_v2,
+            contentDescription = "荷物の受け取り",
             height = 166,
             onClick = {
                 SoundManager.playTransition(context)
@@ -249,10 +245,9 @@ private fun LeftButtonPanel(
         Spacer(modifier = Modifier.height(20.dp))
 
         // 荷物の引き渡し（大ボタン）
-        MainActionButton(
-            text = "荷物の引き渡し",
-            color = ReleaseButtonColor,
-            textColor = Color.White,
+        ImageActionButton(
+            drawableRes = R.drawable.release_v2,
+            contentDescription = "荷物の引き渡し",
             height = 170,
             onClick = {
                 SoundManager.playTransition(context)
@@ -301,18 +296,24 @@ private fun LeftButtonPanel(
                 }
             }
 
-            SubActionButton(
-                text = "泊まり事務当番",
-                color = NightDutyColor,
-                textColor = Color.White,
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(95.dp),
-                onClick = {
-                    SoundManager.playTransition(context)
-                    onNavigate("night_duty")
-                }
-            )
+                    .height(95.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .debounceClickable(1000L) {
+                        SoundManager.playTransition(context)
+                        onNavigate("night_duty")
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.tomari_jimuto_v2),
+                    contentDescription = "泊まり事務当番",
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -322,18 +323,38 @@ private fun LeftButtonPanel(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            SubActionButton(
-                text = "荷物履歴一覧",
-                color = OldNoteColor,
-                textColor = Color.Black,
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(95.dp),
-                onClick = {
-                    SoundManager.playTransition(context)
-                    onNavigate("old_notebook")
+                    .height(95.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(OldNoteColor)
+                    .debounceClickable(1000L) {
+                        SoundManager.playTransition(context)
+                        onNavigate("old_notebook")
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.icon_calender),
+                        contentDescription = "カレンダー",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "荷物履歴一覧",
+                        color = Color.Black,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
                 }
-            )
+            }
 
             SubActionButton(
                 text = "管理用画面",
@@ -351,12 +372,11 @@ private fun LeftButtonPanel(
     }
 }
 
-// ===== 大きなメインボタン =====
+// ===== 画像ボタン =====
 @Composable
-private fun MainActionButton(
-    text: String,
-    color: Color,
-    textColor: Color,
+private fun ImageActionButton(
+    drawableRes: Int,
+    contentDescription: String,
     height: Int,
     onClick: () -> Unit
 ) {
@@ -365,15 +385,14 @@ private fun MainActionButton(
             .fillMaxWidth()
             .height(height.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(color)
             .debounceClickable(1000L) { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            color = textColor,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
+        Image(
+            painter = painterResource(id = drawableRes),
+            contentDescription = contentDescription,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
     }
 }
@@ -556,7 +575,7 @@ private fun FooterBar() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Copyright \u00A9 2024 Kumano Dormitory IT Section",
+            text = "Copyright \u00A9 2026 Kumano Dormitory IT Section",
             color = FooterFontColor,
             fontSize = 16.sp
         )

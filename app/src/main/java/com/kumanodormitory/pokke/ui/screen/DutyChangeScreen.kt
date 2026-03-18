@@ -214,7 +214,7 @@ private fun JimutoFooter() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Copyright \u00A9 2024 Kumano Dormitory IT Section",
+            text = "Copyright \u00A9 2026 Kumano Dormitory IT Section",
             color = FooterFontColor,
             fontSize = 14.sp
         )
