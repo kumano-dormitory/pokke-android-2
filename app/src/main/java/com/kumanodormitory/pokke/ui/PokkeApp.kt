@@ -1,5 +1,6 @@
 package com.kumanodormitory.pokke.ui
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -42,7 +43,7 @@ fun PokkeApp(
         NavHost(
             navController = navController,
             startDestination = "home",
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(PaddingValues(top = innerPadding.calculateTopPadding()))
         ) {
             composable("home") {
                 HomeScreen(

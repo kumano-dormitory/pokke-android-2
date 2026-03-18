@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -207,9 +208,9 @@ private fun JimutoFooter() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(45.dp)
             .background(FooterColor)
-            .padding(horizontal = 50.dp),
+            .navigationBarsPadding()
+            .padding(horizontal = 50.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
