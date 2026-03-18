@@ -2,6 +2,8 @@ package com.kumanodormitory.pokke
 
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +38,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         enableEdgeToEdge()
+
+        // ナビゲーションバー（△○□）とステータスバーを非表示
+        window.insetsController?.let { controller ->
+            controller.hide(WindowInsets.Type.navigationBars() or WindowInsets.Type.statusBars())
+            controller.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         val db = PokkeDatabase.getInstance(this)
 
