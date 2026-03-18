@@ -188,6 +188,20 @@ class ParcelDeliveryViewModel(
         )
     }
 
+    fun resetSelection() {
+        _uiState.value = _uiState.value.copy(
+            selectedBlock = null,
+            selectedRoom = null,
+            rooms = emptyList(),
+            selectedRyosei = null,
+            parcelsForRyosei = emptyList(),
+            selectedParcelIds = emptySet(),
+            showIdentityDialog = false,
+            showDeliveryDialog = false
+        )
+        reapplyFilters()
+    }
+
     fun deliverSelected(onComplete: () -> Unit) {
         val state = _uiState.value
         if (state.selectedParcelIds.isEmpty()) return

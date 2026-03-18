@@ -176,6 +176,16 @@ class ParcelRegisterViewModel(
     fun resetUiState() {
         _uiState.value = ParcelRegisterUiState.Idle
     }
+
+    fun resetSelection() {
+        _selectedBlock.value = null
+        _selectedRoom.value = null
+        _searchQuery.value = ""
+        _selectedRyosei.value = null
+        _showTypeDialog.value = false
+        _note.value = ""
+        loadAllRyosei()
+    }
 }
 
 sealed interface ParcelRegisterUiState {

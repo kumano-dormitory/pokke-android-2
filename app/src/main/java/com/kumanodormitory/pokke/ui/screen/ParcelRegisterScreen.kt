@@ -106,6 +106,11 @@ fun ParcelRegisterScreen(
     // 連打防止用
     var lastRegisterClickTime by remember { mutableLongStateOf(0L) }
 
+    // 画面表示時に選択状態をリセット
+    LaunchedEffect(Unit) {
+        viewModel.resetSelection()
+    }
+
     LaunchedEffect(uiState) {
         when (uiState) {
             is ParcelRegisterUiState.Success -> {
