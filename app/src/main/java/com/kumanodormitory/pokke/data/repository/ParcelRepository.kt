@@ -95,6 +95,9 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
     suspend fun getUnsyncedParcels(olderThan: Long): List<ParcelEntity> =
         parcelDao.getUnsyncedParcels(olderThan)
 
+    suspend fun getAllParcels(): List<ParcelEntity> =
+        parcelDao.getAllSync()
+
     suspend fun updateSyncedAt(ids: List<String>) {
         parcelDao.updateSyncedAt(ids, System.currentTimeMillis())
     }

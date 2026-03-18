@@ -103,6 +103,7 @@ fun AdminScreen(
                 uiState = uiState,
                 onSyncRyosei = { viewModel.syncRyosei() },
                 onSyncParcels = { viewModel.syncParcels() },
+                onUploadAllParcels = { viewModel.uploadAllParcels() },
                 onHealthCheck = { viewModel.checkHealth() },
                 onConfirmLost = { viewModel.confirmLost(it) },
                 onArchiveLost = { viewModel.archiveLostParcels() },
@@ -177,6 +178,7 @@ private fun AdminMenuContent(
     uiState: AdminUiState,
     onSyncRyosei: () -> Unit,
     onSyncParcels: () -> Unit,
+    onUploadAllParcels: () -> Unit,
     onHealthCheck: () -> Unit,
     onConfirmLost: (String) -> Unit,
     onArchiveLost: () -> Unit,
@@ -244,6 +246,23 @@ private fun AdminMenuContent(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         Text("荷物データ同期", color = Color.White)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = onUploadAllParcels,
+                        enabled = !uiState.isUploadingAllParcels,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD9844A))
+                    ) {
+                        if (uiState.isUploadingAllParcels) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text("全荷物アップロード", color = Color.White)
                     }
                 }
             }

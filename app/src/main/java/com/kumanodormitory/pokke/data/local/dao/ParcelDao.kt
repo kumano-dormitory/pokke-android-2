@@ -22,6 +22,9 @@ interface ParcelDao {
     @Query("SELECT * FROM parcels ORDER BY created_at DESC")
     fun getAll(): Flow<List<ParcelEntity>>
 
+    @Query("SELECT * FROM parcels ORDER BY created_at ASC")
+    suspend fun getAllSync(): List<ParcelEntity>
+
     @Query("SELECT * FROM parcels WHERE id = :id")
     suspend fun getById(id: String): ParcelEntity?
 

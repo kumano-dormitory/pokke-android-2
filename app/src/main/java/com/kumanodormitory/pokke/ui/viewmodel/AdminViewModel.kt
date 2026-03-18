@@ -32,6 +32,7 @@ data class AdminUiState(
     val isCheckingHealth: Boolean = false,
     val isSyncingRyosei: Boolean = false,
     val isSyncingParcel: Boolean = false,
+    val isUploadingAllParcels: Boolean = false,
     val lastRyoseiSyncAt: Long? = null,
     val lastParcelSyncAt: Long? = null
 )
@@ -269,6 +270,56 @@ class AdminViewModel(
                 _uiState.value = _uiState.value.copy(
                     isSyncingParcel = false,
                     snackbarMessage = "荷物同期失敗: ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun uploadAllParcels() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUploadingAllParcels = true, snackbarMessage = null)
+            try {
+                val allParcels = parcelRepository.getAllParcels()
+                if (allParcels.isEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingAllParcels = false,
+                        snackbarMessage = "荷物データがありません"
+                    )
+                    return@launch
+                }
+
+                val deviceId = syncPrefs.getString("deviceId", null) ?: run {
+                    val id = "pokke-${android.os.Build.MODEL}-${System.currentTimeMillis()}"
+                    syncPrefs.edit().putString("deviceId", id).apply()
+                    id
+                }
+                val dtos = allParcels.map { it.toSyncDto() }
+                val request = SyncPushRequest(
+                    deviceId = deviceId,
+                    generatedAt = System.currentTimeMillis(),
+                    parcels = SyncPushParcelRequest(items = dtos)
+                )
+                val response = PokkeApiClient.service.syncPush(body = request)
+                if (response.isSuccessful) {
+                    val acceptedCount = response.body()?.accepted?.parcels ?: allParcels.size
+                    parcelRepository.updateSyncedAt(allParcels.map { it.id })
+                    val now = System.currentTimeMillis()
+                    syncPrefs.edit().putLong("lastParcelSyncAt", now).apply()
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingAllParcels = false,
+                        lastParcelSyncAt = now,
+                        snackbarMessage = "全荷物データを${acceptedCount}件アップロードしました"
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isUploadingAllParcels = false,
+                        snackbarMessage = "荷物アップロード失敗: HTTP ${response.code()}"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isUploadingAllParcels = false,
+                    snackbarMessage = "荷物アップロード失敗: ${e.message}"
                 )
             }
         }
