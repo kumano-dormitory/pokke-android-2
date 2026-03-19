@@ -21,6 +21,10 @@ class ParcelRegisterViewModel(
     private val operationLogRepository: OperationLogRepository
 ) : ViewModel() {
 
+    companion object {
+        const val BLOCK_OTHER = "その他"
+    }
+
     private val _blocks = MutableStateFlow<List<String>>(emptyList())
     val blocks: StateFlow<List<String>> = _blocks.asStateFlow()
 
@@ -58,13 +62,18 @@ class ParcelRegisterViewModel(
 
     private fun loadBlocks() {
         viewModelScope.launch {
-            _blocks.value = ryoseiRepository.getAllBlocks().first()
+            ryoseiRepository.getAllBlocks().collect { blocks ->
+                val hasOther = ryoseiRepository.getNonAlphanumericRooms().first().isNotEmpty()
+                _blocks.value = if (hasOther) blocks + BLOCK_OTHER else blocks
+            }
         }
     }
 
     private fun loadAllRyosei() {
         viewModelScope.launch {
-            _ryoseiList.value = ryoseiRepository.getAll().first()
+            ryoseiRepository.getAll().collect { ryosei ->
+                _ryoseiList.value = ryosei
+            }
         }
     }
 
@@ -73,8 +82,13 @@ class ParcelRegisterViewModel(
         _selectedRoom.value = null
         _searchQuery.value = ""
         viewModelScope.launch {
-            _rooms.value = ryoseiRepository.getRoomsByBlock(block).first()
-            _ryoseiList.value = ryoseiRepository.getByBlock(block).first()
+            if (block == BLOCK_OTHER) {
+                _rooms.value = ryoseiRepository.getNonAlphanumericRooms().first()
+                _ryoseiList.value = ryoseiRepository.getByNonAlphanumericRoom().first()
+            } else {
+                _rooms.value = ryoseiRepository.getRoomsByBlock(block).first()
+                _ryoseiList.value = ryoseiRepository.getByBlock(block).first()
+            }
         }
     }
 
@@ -94,6 +108,7 @@ class ParcelRegisterViewModel(
             viewModelScope.launch {
                 _ryoseiList.value = when {
                     room != null -> ryoseiRepository.getByRoom(room).first()
+                    block == BLOCK_OTHER -> ryoseiRepository.getByNonAlphanumericRoom().first()
                     block != null -> ryoseiRepository.getByBlock(block).first()
                     else -> ryoseiRepository.getAll().first()
                 }

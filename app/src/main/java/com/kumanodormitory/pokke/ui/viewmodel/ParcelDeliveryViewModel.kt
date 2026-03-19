@@ -40,6 +40,11 @@ class ParcelDeliveryViewModel(
     private val operationLogRepository: OperationLogRepository
 ) : ViewModel() {
 
+    companion object {
+        const val BLOCK_OTHER = "その他"
+        private val ALPHANUMERIC_ONLY = Regex("^[A-Za-z0-9]+$")
+    }
+
     private val _uiState = MutableStateFlow(ParcelDeliveryUiState())
     val uiState: StateFlow<ParcelDeliveryUiState> = _uiState.asStateFlow()
 
@@ -77,9 +82,11 @@ class ParcelDeliveryViewModel(
                 val ryoseiIdsWithParcels = parcels.map { it.ryoseiId }.toSet()
                 val ryoseiWithParcels = ryosei.filter { it.id in ryoseiIdsWithParcels }
                 val blocks = ryosei.map { it.block }.distinct().sorted()
+                val hasOther = ryosei.any { !ALPHANUMERIC_ONLY.matches(it.room) }
+                val blocksWithOther = if (hasOther) blocks + BLOCK_OTHER else blocks
 
                 _uiState.value = _uiState.value.copy(
-                    blocks = blocks,
+                    blocks = blocksWithOther,
                     isLoading = false
                 )
 
@@ -95,7 +102,11 @@ class ParcelDeliveryViewModel(
         val ryoseiWithParcels = allRyosei.filter { it.id in ryoseiIdsWithParcels }
 
         val filteredByBlock = state.selectedBlock?.let { block ->
-            ryoseiWithParcels.filter { it.block == block }
+            if (block == BLOCK_OTHER) {
+                ryoseiWithParcels.filter { !ALPHANUMERIC_ONLY.matches(it.room) }
+            } else {
+                ryoseiWithParcels.filter { it.block == block }
+            }
         } ?: ryoseiWithParcels
 
         val rooms = state.selectedBlock?.let {
@@ -115,7 +126,11 @@ class ParcelDeliveryViewModel(
     fun selectBlock(block: String) {
         val ryoseiIdsWithParcels = activeParcels.map { it.ryoseiId }.toSet()
         val ryoseiWithParcels = allRyosei.filter { it.id in ryoseiIdsWithParcels }
-        val filteredByBlock = ryoseiWithParcels.filter { it.block == block }
+        val filteredByBlock = if (block == BLOCK_OTHER) {
+            ryoseiWithParcels.filter { !ALPHANUMERIC_ONLY.matches(it.room) }
+        } else {
+            ryoseiWithParcels.filter { it.block == block }
+        }
         val rooms = filteredByBlock.map { it.room }.distinct().sorted()
 
         _uiState.value = _uiState.value.copy(

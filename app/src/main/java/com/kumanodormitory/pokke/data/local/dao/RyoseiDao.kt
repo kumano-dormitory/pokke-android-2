@@ -62,6 +62,28 @@ interface RyoseiDao {
     @Query("SELECT DISTINCT room FROM ryosei WHERE block = :block AND leaving_date IS NULL ORDER BY room")
     fun getRoomsByBlock(block: String): Flow<List<String>>
 
+    /** 英数字以外の文字を含む部屋名の寮生（臨時キャパシティ等） */
+    @Query(
+        """
+        SELECT * FROM ryosei
+        WHERE leaving_date IS NULL
+          AND room GLOB '*[^A-Za-z0-9]*'
+        ORDER BY room, name
+        """
+    )
+    fun getByNonAlphanumericRoom(): Flow<List<RyoseiEntity>>
+
+    /** 英数字以外の文字を含む部屋名の一覧 */
+    @Query(
+        """
+        SELECT DISTINCT room FROM ryosei
+        WHERE leaving_date IS NULL
+          AND room GLOB '*[^A-Za-z0-9]*'
+        ORDER BY room
+        """
+    )
+    fun getNonAlphanumericRooms(): Flow<List<String>>
+
     @Query("SELECT * FROM ryosei WHERE id = :id")
     suspend fun getById(id: String): RyoseiEntity?
 

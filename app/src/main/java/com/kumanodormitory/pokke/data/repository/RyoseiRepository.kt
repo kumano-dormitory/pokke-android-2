@@ -30,6 +30,12 @@ class RyoseiRepository(private val ryoseiDao: RyoseiDao) {
     fun getRoomsByBlock(block: String): Flow<List<String>> =
         ryoseiDao.getRoomsByBlock(block)
 
+    fun getByNonAlphanumericRoom(): Flow<List<RyoseiEntity>> =
+        ryoseiDao.getByNonAlphanumericRoom()
+
+    fun getNonAlphanumericRooms(): Flow<List<String>> =
+        ryoseiDao.getNonAlphanumericRooms()
+
     suspend fun insertAll(ryoseiList: List<RyoseiEntity>) {
         ryoseiDao.insertAll(ryoseiList)
     }

@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kumanodormitory.pokke.data.local.entity.RyoseiEntity
@@ -187,7 +188,7 @@ private fun JimutoHeader(onNavigateBack: () -> Unit) {
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.width(10.dp))
 
         Text(
             text = "事務当番交代",
@@ -195,11 +196,6 @@ private fun JimutoHeader(onNavigateBack: () -> Unit) {
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // 右側のバランス用スペーサー
-        Spacer(modifier = Modifier.size(50.dp))
     }
 }
 
@@ -211,14 +207,14 @@ private fun JimutoFooter() {
             .fillMaxWidth()
             .background(FooterColor)
             .navigationBarsPadding()
-            .padding(horizontal = 50.dp, vertical = 2.dp),
+            .padding(horizontal = 50.dp, vertical = 1.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "Copyright \u00A9 2026 Kumano Dormitory IT Section",
             color = FooterFontColor,
-            fontSize = 14.sp
+            fontSize = 10.sp
         )
     }
 }

@@ -226,7 +226,7 @@ private fun ReleaseHeader(
             .fillMaxWidth()
             .height(120.dp)
             .background(ReleaseTheme)
-            .padding(horizontal = 70.dp),
+            .padding(horizontal = 40.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onBack) {
@@ -273,14 +273,14 @@ private fun ReleaseFooter() {
             .fillMaxWidth()
             .background(ReleaseTheme)
             .navigationBarsPadding()
-            .padding(horizontal = 50.dp, vertical = 2.dp),
+            .padding(horizontal = 50.dp, vertical = 1.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "© Kumano Dormitory",
             color = ReleaseHeaderFont,
-            fontSize = 12.sp
+            fontSize = 10.sp
         )
     }
 }

@@ -29,6 +29,10 @@ class CallViewModel(
     private val ryoseiRepository: RyoseiRepository
 ) : ViewModel() {
 
+    companion object {
+        const val BLOCK_OTHER = "その他"
+    }
+
     private val _uiState = MutableStateFlow(CallUiState())
     val uiState: StateFlow<CallUiState> = _uiState.asStateFlow()
 
@@ -39,15 +43,19 @@ class CallViewModel(
 
     private fun loadBlocks() {
         viewModelScope.launch {
-            val blocks = ryoseiRepository.getAllBlocks().first()
-            _uiState.value = _uiState.value.copy(blocks = blocks)
+            ryoseiRepository.getAllBlocks().collect { blocks ->
+                val hasOther = ryoseiRepository.getNonAlphanumericRooms().first().isNotEmpty()
+                val blocksWithOther = if (hasOther) blocks + BLOCK_OTHER else blocks
+                _uiState.value = _uiState.value.copy(blocks = blocksWithOther)
+            }
         }
     }
 
     private fun loadAllRyosei() {
         viewModelScope.launch {
-            val ryosei = ryoseiRepository.getAll().first()
-            _uiState.value = _uiState.value.copy(ryoseiList = ryosei)
+            ryoseiRepository.getAll().collect { ryosei ->
+                _uiState.value = _uiState.value.copy(ryoseiList = ryosei)
+            }
         }
     }
 
@@ -58,9 +66,15 @@ class CallViewModel(
             searchQuery = ""
         )
         viewModelScope.launch {
-            val rooms = ryoseiRepository.getRoomsByBlock(block).first()
-            val ryosei = ryoseiRepository.getByBlock(block).first()
-            _uiState.value = _uiState.value.copy(rooms = rooms, ryoseiList = ryosei)
+            if (block == BLOCK_OTHER) {
+                val rooms = ryoseiRepository.getNonAlphanumericRooms().first()
+                val ryosei = ryoseiRepository.getByNonAlphanumericRoom().first()
+                _uiState.value = _uiState.value.copy(rooms = rooms, ryoseiList = ryosei)
+            } else {
+                val rooms = ryoseiRepository.getRoomsByBlock(block).first()
+                val ryosei = ryoseiRepository.getByBlock(block).first()
+                _uiState.value = _uiState.value.copy(rooms = rooms, ryoseiList = ryosei)
+            }
         }
     }
 
@@ -80,6 +94,7 @@ class CallViewModel(
             viewModelScope.launch {
                 val ryosei = when {
                     room != null -> ryoseiRepository.getByRoom(room).first()
+                    block == BLOCK_OTHER -> ryoseiRepository.getByNonAlphanumericRoom().first()
                     block != null -> ryoseiRepository.getByBlock(block).first()
                     else -> ryoseiRepository.getAll().first()
                 }
