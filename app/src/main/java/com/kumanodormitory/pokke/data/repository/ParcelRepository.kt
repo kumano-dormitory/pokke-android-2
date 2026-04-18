@@ -27,7 +27,8 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
                 status = "RECEIVED",
                 deliveredAt = System.currentTimeMillis(),
                 deliveredByName = deliveredByName,
-                updatedAt = System.currentTimeMillis()
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null
             )
         )
     }
@@ -43,7 +44,8 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
                 status = "REGISTERED",
                 deliveredAt = null,
                 deliveredByName = null,
-                updatedAt = System.currentTimeMillis()
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null
             )
         )
     }
@@ -53,7 +55,8 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
         parcelDao.update(
             parcel.copy(
                 isLost = true,
-                updatedAt = System.currentTimeMillis()
+                updatedAt = System.currentTimeMillis(),
+                syncedAt = null
             )
         )
     }
@@ -65,7 +68,8 @@ class ParcelRepository(private val parcelDao: ParcelDao) {
             parcelDao.update(
                 parcel.copy(
                     lastConfirmedAt = now,
-                    updatedAt = now
+                    updatedAt = now,
+                    syncedAt = null
                 )
             )
         }

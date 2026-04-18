@@ -11,6 +11,6 @@ data class SyncPushRequest(
 
 @Serializable
 data class SyncPushParcelRequest(
-    val mode: String = "SNAPSHOT",
+    val mode: String = "DIFF",
     val items: List<ParcelDto>
 )

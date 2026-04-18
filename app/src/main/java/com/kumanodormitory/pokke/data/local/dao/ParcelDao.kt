@@ -59,7 +59,7 @@ interface ParcelDao {
     @Query("SELECT * FROM parcels WHERE is_lost = 1 AND lost_confirmed_at IS NULL ORDER BY created_at DESC")
     fun getLostParcels(): Flow<List<ParcelEntity>>
 
-    @Query("UPDATE parcels SET lost_confirmed_at = :confirmedAt, updated_at = :confirmedAt WHERE id IN (:parcelIds)")
+    @Query("UPDATE parcels SET lost_confirmed_at = :confirmedAt, updated_at = :confirmedAt, synced_at = NULL WHERE id IN (:parcelIds)")
     suspend fun archiveLostParcels(parcelIds: List<String>, confirmedAt: Long)
 
     @Query("SELECT * FROM parcels WHERE is_lost = 1 AND lost_confirmed_at IS NOT NULL ORDER BY lost_confirmed_at DESC")
