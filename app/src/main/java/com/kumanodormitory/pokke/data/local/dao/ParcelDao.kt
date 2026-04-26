@@ -7,6 +7,8 @@ import androidx.room.Update
 import com.kumanodormitory.pokke.data.local.entity.ParcelEntity
 import kotlinx.coroutines.flow.Flow
 
+private const val BATCH_SIZE = 100
+
 @Dao
 interface ParcelDao {
 
@@ -60,13 +62,25 @@ interface ParcelDao {
     fun getLostParcels(): Flow<List<ParcelEntity>>
 
     @Query("UPDATE parcels SET lost_confirmed_at = :confirmedAt, updated_at = :confirmedAt, synced_at = NULL WHERE id IN (:parcelIds)")
-    suspend fun archiveLostParcels(parcelIds: List<String>, confirmedAt: Long)
+    suspend fun archiveLostParcelsBatch(parcelIds: List<String>, confirmedAt: Long)
+
+    suspend fun archiveLostParcels(parcelIds: List<String>, confirmedAt: Long) {
+        parcelIds.chunked(BATCH_SIZE).forEach { batch ->
+            archiveLostParcelsBatch(batch, confirmedAt)
+        }
+    }
 
     @Query("SELECT * FROM parcels WHERE is_lost = 1 AND lost_confirmed_at IS NOT NULL ORDER BY lost_confirmed_at DESC")
     fun getArchivedLostParcels(): Flow<List<ParcelEntity>>
 
     @Query("UPDATE parcels SET last_confirmed_at = :confirmedAt WHERE id IN (:parcelIds)")
-    suspend fun updateLastConfirmedAt(parcelIds: List<String>, confirmedAt: Long)
+    suspend fun updateLastConfirmedAtBatch(parcelIds: List<String>, confirmedAt: Long)
+
+    suspend fun updateLastConfirmedAt(parcelIds: List<String>, confirmedAt: Long) {
+        parcelIds.chunked(BATCH_SIZE).forEach { batch ->
+            updateLastConfirmedAtBatch(batch, confirmedAt)
+        }
+    }
 
     @Query(
         """
@@ -80,5 +94,11 @@ interface ParcelDao {
     suspend fun getUnsyncedParcels(olderThan: Long): List<ParcelEntity>
 
     @Query("UPDATE parcels SET synced_at = :syncedAt WHERE id IN (:ids)")
-    suspend fun updateSyncedAt(ids: List<String>, syncedAt: Long)
+    suspend fun updateSyncedAtBatch(ids: List<String>, syncedAt: Long)
+
+    suspend fun updateSyncedAt(ids: List<String>, syncedAt: Long) {
+        ids.chunked(BATCH_SIZE).forEach { batch ->
+            updateSyncedAtBatch(batch, syncedAt)
+        }
+    }
 }
