@@ -11,3 +11,7 @@ local.properties
 /app/build
 /app/release
 gradle.properties
+
+# Release signing key (never commit)
+keystores/release.keystore
+keystores/*.jks
