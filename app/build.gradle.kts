@@ -6,6 +6,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
+}
+
 android {
     namespace = "com.kumanodormitory.pokke"
     compileSdk = 35
@@ -29,7 +37,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "POKKE_API_BASE_URL", "\"https://pokke.kumano-ryo.com\"")
-        buildConfigField("String", "POKKE_API_KEY", project.findProperty("POKKE_API_KEY")?.toString()?.let { "\"$it\"" } ?: "\"\"")
+        val apiKey = localProperties.getProperty("POKKE_API_KEY", "")
+        buildConfigField("String", "POKKE_API_KEY", "\"$apiKey\"")
     }
 
     buildTypes {
