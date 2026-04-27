@@ -293,17 +293,17 @@ class AdminViewModel(
                     syncPrefs.edit().putString("deviceId", id).apply()
                     id
                 }
-                val dtos = allParcels.map { it.toSyncDto() }
+                val now = System.currentTimeMillis()
+                val dtos = allParcels.map { it.toSyncDto().copy(updatedAt = now) }
                 val request = SyncPushRequest(
                     deviceId = deviceId,
-                    generatedAt = System.currentTimeMillis(),
+                    generatedAt = now,
                     parcels = SyncPushParcelRequest(items = dtos)
                 )
                 val response = PokkeApiClient.service.syncPush(body = request)
                 if (response.isSuccessful) {
                     val acceptedCount = response.body()?.accepted?.parcels ?: allParcels.size
                     parcelRepository.updateSyncedAt(allParcels.map { it.id })
-                    val now = System.currentTimeMillis()
                     syncPrefs.edit().putLong("lastParcelSyncAt", now).apply()
                     _uiState.value = _uiState.value.copy(
                         isUploadingAllParcels = false,
